@@ -1,27 +1,21 @@
 package com.zerocodeteam.networktestapp;
 
 import com.android.volley.Request;
-import com.android.volley.Response;
 import com.zerocodeteam.network.ZctNetwork;
-import com.zerocodeteam.network.request.GsonRequest;
+import com.zerocodeteam.network.request.StringRequest;
+import com.zerocodeteam.network.response.ResponseListener;
 
-import org.apache.http.entity.StringEntity;
-
-import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 
 
 /**
- * Created by Rade on 8/21/2015.
+ * Created by ZeroCodeTeam on 8/21/2015.
  */
 public class API {
 
-
-    private static final String API_REQUEST_TAG = "article";
-
     //API urls
-    private static final String API_BASE_URL = "http://onlinews.dis.rs/webservices/";
-    private static final String API_PING_SERVER = "server-status.php";
+    private static final String API_BASE_URL = "http://echo.jsontest.com";
+    private static final String API_PING_SERVER = "/key/value/one/two";
 
     /**
      * Starts network request
@@ -31,9 +25,9 @@ public class API {
     private static void startNetworkRequest(Request request, String... tag) {
 //        mLogger.d("STARTING REQUEST " + request.getUrl());
         if (tag.length == 0) {
-            ZctNetwork.addRequest(request);
+            ZctNetwork.getInstance().sendRequest(request);
         } else {
-            ZctNetwork.addRequest(request, tag[0]);
+            ZctNetwork.getInstance().sendRequest(request, tag[0]);
         }
     }
 
@@ -41,29 +35,12 @@ public class API {
      * Performs login procedure for given loginData
      *
      * @param listener
-     * @param errorListener
      */
-    public static void pingServer(GsonRequest.ResponseListener<Object> listener, Response.ErrorListener errorListener) {
+    public static void pingServer(ResponseListener<String> listener) {
 
         // Perform request
-        GsonRequest<Object> request = new GsonRequest<>(null, Request.Method.POST, API_BASE_URL + API_PING_SERVER, null, generateDefaultHeaders(), null, listener, errorListener);
+        StringRequest request = new StringRequest(Request.Method.POST, API_BASE_URL + API_PING_SERVER, listener, generateDefaultHeaders(), null, null);
         startNetworkRequest(request);
-    }
-
-
-    /**
-     * Converts model object to request body
-     */
-    private static StringEntity transformModelToEntity(Object object) {
-        //Populate string entity
-        StringEntity stringEntity = null;
-        try {
-            stringEntity = new StringEntity(object.toString(), "UTF-8");
-//            mLogger.d("transformModelToEntity: " + object.toString());
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
-        }
-        return stringEntity;
     }
 
     /**
