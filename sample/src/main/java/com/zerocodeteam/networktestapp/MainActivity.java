@@ -2,20 +2,26 @@ package com.zerocodeteam.networktestapp;
 
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.TextView;
 
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
-import com.zerocodeteam.network.request.NetworkRequest;
+import com.zerocodeteam.network.ZctNetwork;
+import com.zerocodeteam.network.response.ResponseListener;
 
 import java.util.Map;
 
+
+/**
+ * Created by ZeroCodeTeam on 05/12/15.
+ */
 public class MainActivity extends AppCompatActivity {
+
+    private TextView mTextView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,32 +29,47 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        mTextView = (TextView) findViewById(R.id.logMsg);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(final View view) {
 
-                API.pingServer(new NetworkRequest.ResponseListener<Object>() {
+                API.pingServer(new ResponseListener<Object>() {
                     @Override
-                    public void onResponseSuccess(Object cookie, Object createdObject, Map<String, String> responseHeaders, Object... metaData) {
-                        Snackbar.make(view, "RESPONSE SUCCESSFUL", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
+                    public void onResponseSuccess(Object cookie, Object createdObject, Map<String, String> responseHeaders) {
+
+                        /*Snackbar.make(view, createdObject.toString(), Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();*/
+                        mTextView.append("\nS: " + createdObject.toString());
                     }
 
                     @Override
-                    public void onErrorResponse(VolleyError error, Object... metaData) {
-                        Snackbar.make(view, "ERROR RESPONSE", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-                    }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError volleyError) {
-                        Snackbar.make(view, "NOT OK", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
+                    public void onErrorResponse(ZctNetwork.ErrorType type, Object cookie, VolleyError error, Map<String, String> responseHeaders) {
+                        /*Snackbar.make(view, error.getMessage(), Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();*/
+                        String errorMsg = "UNKNOWN";
+                        switch (type) {
+                            case TIMEOUT:
+                                errorMsg = "TIMEOUT";
+                                break;
+                            case AUTH_FAILURE:
+                                errorMsg = "AUTH_FAILURE";
+                                break;
+                            case SERVER_ERROR:
+                                errorMsg = "SERVER_ERROR";
+                                break;
+                            case NETWORK_ERROR:
+                                errorMsg = "NETWORK_ERROR";
+                                break;
+                            case PARSE_ERROR:
+                                errorMsg = "PARSE_ERROR";
+                                break;
+                        }
+                        mTextView.append("\nE: [TYPE: " + errorMsg + " code:" + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + ":" + error.getNetworkTimeMs() + "ms] " + error.getMessage());
                     }
                 });
-
             }
         });
     }
