@@ -10,12 +10,12 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 /**
- * Created by Bane on 26.7.2015.
+ * Created by ZeroCodeTeam on 23.7.2015.
  */
 public class StringRequest extends NetworkRequest<String> {
 
-    public StringRequest(Object cookie, int method, String url, Map<String, String> headers, StringEntity stringEntity, ResponseListener successListener, Response.ErrorListener errorListener) {
-        super(cookie, method, url, headers, stringEntity, successListener, errorListener);
+    public StringRequest(Object cookie, int method, String url, Map<String, String> headers, StringEntity stringEntity, ResponseListener successListener) {
+        super(cookie, method, url, headers, stringEntity, successListener);
     }
 
     protected Response<String> parseNetworkResponse(NetworkResponse response) {

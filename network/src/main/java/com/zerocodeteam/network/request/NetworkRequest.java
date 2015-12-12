@@ -2,7 +2,6 @@ package com.zerocodeteam.network.request;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 
@@ -13,58 +12,37 @@ import java.io.IOException;
 import java.util.Map;
 
 /**
- * Created by Bane on 26.7.2015.
+ * Created by ZeroCodeTeam on 23.7.2015.
  */
 public abstract class NetworkRequest<T> extends Request<T> {
 
     private final Map<String, String> mHeaders;
     private StringEntity mStringEntity;
     protected Map<String, String> mResponseHeaders;
-    protected final Object mCookie;
-    private Object mMetaData;
-
-    private final Response.Listener<T> mListener = new Response.Listener<T>() {
-        @Override
-        public void onResponse(T t) {
-            if (mSuccessListener != null) {
-                if (mMetaData != null) {
-                    mSuccessListener.onResponseSuccess(mCookie, t, mResponseHeaders, mMetaData);
-                } else {
-                    mSuccessListener.onResponseSuccess(mCookie, t, mResponseHeaders);
-                }
-            }
-        }
-    };
-
     private final ResponseListener mSuccessListener;
+    protected final Object mCookie;
 
-    public interface ResponseListener<T> {
-        void onResponseSuccess(Object cookie, T createdObject, Map<String, String> responseHeaders, Object... metaData);
-
-        void onErrorResponse(VolleyError error, Object... metaData);
-    }
-
-    public NetworkRequest(Object cookie, int method, String url, Map<String, String> headers, StringEntity stringEntity, ResponseListener successListener, Response.ErrorListener errorListener, Object... metaData) {
-        super(method, url, errorListener);
+    public NetworkRequest(Object cookie, int method, String url, Map<String, String> headers, StringEntity stringEntity, ResponseListener successListener) {
+        super(method, url, null);
         this.mHeaders = headers;
         this.mStringEntity = stringEntity;
         this.mSuccessListener = successListener;
         this.mCookie = cookie;
-        this.mMetaData = metaData.length != 0 ? metaData[0] : null;
     }
 
     @Override
     protected void deliverResponse(T response) {
-        mListener.onResponse(response);
+        if (mSuccessListener != null) {
+            mSuccessListener.onResponseSuccess(mCookie, response, mResponseHeaders);
+        }
     }
 
     @Override
     public void deliverError(VolleyError error) {
         super.deliverError(error);
-        if (mSuccessListener != null && mMetaData != null) {
-            mSuccessListener.onErrorResponse(error, mMetaData);
+        if (mSuccessListener != null) {
+            mSuccessListener.onErrorResponse(mCookie, error);
         }
-
     }
 
     @Override
@@ -90,5 +68,11 @@ public abstract class NetworkRequest<T> extends Request<T> {
     @Override
     public String getBodyContentType() {
         return mStringEntity != null ? mStringEntity.getContentType().getValue() : super.getBodyContentType();
+    }
+
+    public interface ResponseListener<T> {
+        void onResponseSuccess(Object cookie, T createdObject, Map<String, String> responseHeaders);
+
+        void onErrorResponse(Object cookie, VolleyError error);
     }
 }

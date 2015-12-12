@@ -13,7 +13,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 /**
- * Created by Bane on 23.7.2015.
+ * Created by ZeroCodeTeam on 23.7.2015.
  */
 public class GsonRequest<T> extends NetworkRequest<T> {
 
@@ -30,8 +30,8 @@ public class GsonRequest<T> extends NetworkRequest<T> {
      * @param listener
      */
     public GsonRequest(Object cookie, int method, String url, Class<T> clazz, Map<String, String> headers, StringEntity stringEntity,
-                       ResponseListener<T> listener, Response.ErrorListener errorListener, Object...metaData) {
-        super(cookie, method, url, headers, stringEntity, listener, errorListener, metaData);
+                       ResponseListener<T> listener) {
+        super(cookie, method, url, headers, stringEntity, listener);
         this.mClass = clazz;
     }
 

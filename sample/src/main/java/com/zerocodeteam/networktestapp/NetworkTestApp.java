@@ -14,6 +14,6 @@ public class NetworkTestApp extends Application {
         super.onCreate();
 
         // Init network module
-        ZctNetwork.init(this);
+        ZctNetwork.getInstance().init(this);
     }
 }

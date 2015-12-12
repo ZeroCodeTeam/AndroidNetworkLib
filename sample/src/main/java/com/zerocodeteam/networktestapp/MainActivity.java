@@ -9,7 +9,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
-import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.zerocodeteam.network.request.NetworkRequest;
 
@@ -31,24 +30,17 @@ public class MainActivity extends AppCompatActivity {
 
                 API.pingServer(new NetworkRequest.ResponseListener<Object>() {
                     @Override
-                    public void onResponseSuccess(Object cookie, Object createdObject, Map<String, String> responseHeaders, Object... metaData) {
+                    public void onResponseSuccess(Object cookie, Object createdObject, Map<String, String> responseHeaders) {
                         Snackbar.make(view, "RESPONSE SUCCESSFUL", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }
 
                     @Override
-                    public void onErrorResponse(VolleyError error, Object... metaData) {
+                    public void onErrorResponse(Object cookie, VolleyError error) {
                         Snackbar.make(view, "ERROR RESPONSE", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError volleyError) {
-                        Snackbar.make(view, "NOT OK", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
-                    }
                 });
-
             }
         });
     }

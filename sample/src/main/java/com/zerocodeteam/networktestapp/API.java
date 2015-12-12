@@ -31,9 +31,9 @@ public class API {
     private static void startNetworkRequest(Request request, String... tag) {
 //        mLogger.d("STARTING REQUEST " + request.getUrl());
         if (tag.length == 0) {
-            ZctNetwork.addRequest(request);
+            ZctNetwork.getInstance().sendRequest(request);
         } else {
-            ZctNetwork.addRequest(request, tag[0]);
+            ZctNetwork.getInstance().sendRequest(request, tag[0]);
         }
     }
 
@@ -41,12 +41,11 @@ public class API {
      * Performs login procedure for given loginData
      *
      * @param listener
-     * @param errorListener
      */
-    public static void pingServer(GsonRequest.ResponseListener<Object> listener, Response.ErrorListener errorListener) {
+    public static void pingServer(GsonRequest.ResponseListener<Object> listener) {
 
         // Perform request
-        GsonRequest<Object> request = new GsonRequest<>(null, Request.Method.POST, API_BASE_URL + API_PING_SERVER, null, generateDefaultHeaders(), null, listener, errorListener);
+        GsonRequest<Object> request = new GsonRequest<>(null, Request.Method.POST, API_BASE_URL + API_PING_SERVER, null, generateDefaultHeaders(), null, listener);
         startNetworkRequest(request);
     }
 
