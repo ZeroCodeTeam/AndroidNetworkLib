@@ -49,6 +49,30 @@
     },
     {
       "key": {
+        "uuid": "5ac4a560_8d453e72",
+        "filename": "library/build.gradle",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1006954
+      },
+      "writtenOn": "2015-12-14T10:29:15Z",
+      "side": 1,
+      "message": "Mislim da je trebao zbog image upload-a.",
+      "parentUuid": "5ac4a560_8d6ffec4",
+      "range": {
+        "startLine": 52,
+        "startChar": 4,
+        "endLine": 55,
+        "endChar": 64
+      },
+      "revId": "e607d41f25fe95ebbb987ebb655764184b85fa25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ac4a560_a85bc82c",
         "filename": "library/src/main/java/com/zerocodeteam/network/request/PhotoUploadRequest.java",
         "patchSetId": 1
