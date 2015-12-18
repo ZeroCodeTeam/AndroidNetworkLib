@@ -1,0 +1,50 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "3ac1b152_48636fb1",
+        "filename": "network/src/main/java/com/zerocodeteam/network/request/NetworkRequest.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1006954
+      },
+      "writtenOn": "2015-12-18T06:32:17Z",
+      "side": 1,
+      "message": "Ja bih ovo polje nazvao samo mListener posto hendla i error...",
+      "range": {
+        "startLine": 22,
+        "startChar": 35,
+        "endLine": 22,
+        "endChar": 51
+      },
+      "revId": "bd7defd9ecd0d737de8245497e848ff6c3412890",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3ac1b152_885d87ec",
+        "filename": "network/src/main/java/com/zerocodeteam/network/request/StringRequest.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 17,
+      "author": {
+        "id": 1006954
+      },
+      "writtenOn": "2015-12-18T06:32:17Z",
+      "side": 1,
+      "message": "Isto samo listener",
+      "range": {
+        "startLine": 17,
+        "startChar": 120,
+        "endLine": 17,
+        "endChar": 136
+      },
+      "revId": "bd7defd9ecd0d737de8245497e848ff6c3412890",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
