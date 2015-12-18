@@ -73,6 +73,30 @@
     },
     {
       "key": {
+        "uuid": "5ac4a560_68ba90c1",
+        "filename": "library/build.gradle",
+        "patchSetId": 1
+      },
+      "lineNbr": 55,
+      "author": {
+        "id": 1006975
+      },
+      "writtenOn": "2015-12-18T00:49:07Z",
+      "side": 1,
+      "message": "Komentar je upucen Banetu :)",
+      "parentUuid": "5ac4a560_e835c0db",
+      "range": {
+        "startLine": 52,
+        "startChar": 4,
+        "endLine": 55,
+        "endChar": 64
+      },
+      "revId": "e607d41f25fe95ebbb987ebb655764184b85fa25",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5ac4a560_a85bc82c",
         "filename": "library/src/main/java/com/zerocodeteam/network/request/PhotoUploadRequest.java",
         "patchSetId": 1
