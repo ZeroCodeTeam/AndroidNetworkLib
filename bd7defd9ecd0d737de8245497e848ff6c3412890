@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "3ac1b152_e8da7b16",
+        "filename": "network/src/main/java/com/zerocodeteam/network/request/NetworkRequest.java",
+        "patchSetId": 4
+      },
+      "lineNbr": 22,
+      "author": {
+        "id": 1006975
+      },
+      "writtenOn": "2016-01-09T20:37:09Z",
+      "side": 1,
+      "message": "Slazem se..",
+      "parentUuid": "3ac1b152_48636fb1",
+      "range": {
+        "startLine": 22,
+        "startChar": 35,
+        "endLine": 22,
+        "endChar": 51
+      },
+      "revId": "bd7defd9ecd0d737de8245497e848ff6c3412890",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "3ac1b152_885d87ec",
         "filename": "network/src/main/java/com/zerocodeteam/network/request/StringRequest.java",
         "patchSetId": 4
@@ -41,6 +65,29 @@
         "startChar": 120,
         "endLine": 17,
         "endChar": 136
+      },
+      "revId": "bd7defd9ecd0d737de8245497e848ff6c3412890",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "3ac1b152_c83dbfbd",
+        "filename": "sample/build.gradle",
+        "patchSetId": 4
+      },
+      "lineNbr": 15,
+      "author": {
+        "id": 1006975
+      },
+      "writtenOn": "2016-01-09T20:37:09Z",
+      "side": 1,
+      "message": "Bane, mozemo li se kako rijesiti ovoga? Vezano je za Image upload i module od kojih zavisi.",
+      "range": {
+        "startLine": 9,
+        "startChar": 3,
+        "endLine": 15,
+        "endChar": 5
       },
       "revId": "bd7defd9ecd0d737de8245497e848ff6c3412890",
       "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
