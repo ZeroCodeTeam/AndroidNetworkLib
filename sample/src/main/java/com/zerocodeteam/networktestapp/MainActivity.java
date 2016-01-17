@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(final View view) {
 
-                API.pingServer(new ResponseListener<String>() {
+                API.echoCall(new ResponseListener<String>() {
 
                     @Override
                     public void onResponseSuccess(String responseObject, Map<String, String> responseHeaders, Object cookie) {

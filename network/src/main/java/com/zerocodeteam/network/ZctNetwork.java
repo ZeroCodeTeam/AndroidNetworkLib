@@ -18,32 +18,23 @@ import com.android.volley.toolbox.Volley;
  */
 public class ZctNetwork {
 
-    public enum ErrorType {
-        TIMEOUT,
-        AUTH_FAILURE,
-        SERVER_ERROR,
-        NETWORK_ERROR,
-        PARSE_ERROR,
-        UNKNOWN_ERROR
-    }
-
     public static final String DEFAULT_REQUEST_TAG = ZctNetwork.class.getSimpleName();
     /**
      * Time out request time, 60 seconds default
      */
-    public static int DEFAULT_TIMEOUT_MS = DefaultRetryPolicy.DEFAULT_TIMEOUT_MS;
-
+    public static int DEFAULT_TIMEOUT_MS;
     private static ZctNetwork sInstance;
-
     /**
      * Queue of network requests
      */
     private RequestQueue mRequestQueue;
-
     /**
      * Requests queue for PATCH requests
      */
     private RequestQueue mRequestQueueForPatchRequests;
+
+    private ZctNetwork() {
+    }
 
     public static ZctNetwork getInstance() {
         if (sInstance == null) {
@@ -52,16 +43,25 @@ public class ZctNetwork {
         return sInstance;
     }
 
-    private ZctNetwork() {
+    /**
+     * Client must call this method to initialize environment.
+     *
+     * @param context - Application context
+     */
+    public void init(Context context) {
+        init(context, DefaultRetryPolicy.DEFAULT_TIMEOUT_MS);
     }
 
     /**
      * Client must call this method after initializing call of getInstance() method.
+     *
+     * @param context          - Application context
+     * @param defaultTimeoutMS - Default request timeout in MS
      */
-    public void init(Context context, int... defaultTimeoutMS) {
+    public void init(Context context, int defaultTimeoutMS) {
 
-        if (defaultTimeoutMS.length != 0) {
-            DEFAULT_TIMEOUT_MS = defaultTimeoutMS[0];
+        if (defaultTimeoutMS != 0) {
+            DEFAULT_TIMEOUT_MS = defaultTimeoutMS;
         }
 
         mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
@@ -81,16 +81,41 @@ public class ZctNetwork {
 
     /**
      * Add new request to request queue and start fetching from network
+     *
+     * @param req - Network request that should be executed
+     * @param <T> - Generic request object
+     * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req, String... tag) {
+    public <T> void sendRequest(Request<T> req) throws IllegalStateException {
+        try {
+            sendRequest(req, DEFAULT_REQUEST_TAG);
+        } catch (IllegalStateException ise) {
+            throw ise;
+        }
+    }
+
+    /**
+     * Add new request to request queue and start fetching from network
+     *
+     * @param req - Network request that should be executed
+     * @param tag - Tag that uniquely identify network request
+     * @param <T> - Generic request object
+     * @throws IllegalStateException - Force user to call init method first
+     */
+    public <T> void sendRequest(Request<T> req, String tag) throws IllegalStateException {
+
+        if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
+            throw new IllegalStateException("Object not initialized, please call init() method first.");
+        }
 
         // req.setShouldCache(false);
         req.setRetryPolicy(new DefaultRetryPolicy(DEFAULT_TIMEOUT_MS,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
         // set the default tag if tag is empty
-        if (tag.length != 0) {
-            req.setTag(TextUtils.isEmpty(tag[0]) ? DEFAULT_REQUEST_TAG : tag[0]);
+        if (!TextUtils.isEmpty(tag)) {
+            req.setTag(tag);
         } else {
             req.setTag(DEFAULT_REQUEST_TAG);
         }
@@ -103,35 +128,69 @@ public class ZctNetwork {
     }
 
     /**
-     * Cancel network request
+     * Cancel network request with following tag
+     *
+     * @param tag - Tag that uniquely identify network request
+     * @throws IllegalStateException - Force user to call init method first
      */
-    public void cancelRequests(final String tag) {
-        if (mRequestQueue != null) {
-            mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
+    public void cancelRequests(final String tag) throws IllegalStateException {
 
-                @Override
-                public boolean apply(Request<?> request) {
-                    if (((String) request.getTag()).equals(tag)) {
-                        return true;
-                    }
-                    return false;
-                }
-            });
+        if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
+            throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
+
+        mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
+            @Override
+            public boolean apply(Request<?> request) {
+                if (((String) request.getTag()).equals(tag)) {
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        mRequestQueueForPatchRequests.cancelAll(new RequestQueue.RequestFilter() {
+            @Override
+            public boolean apply(Request<?> request) {
+                if (((String) request.getTag()).equals(tag)) {
+                    return true;
+                }
+                return false;
+            }
+        });
+
     }
 
     /**
      * Cancel all network requests
+     *
+     * @throws IllegalStateException - Force user to call init method first
      */
-    public void cancelAllRequests() {
-        if (mRequestQueue != null) {
-            mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
-
-                @Override
-                public boolean apply(Request<?> request) {
-                    return true;
-                }
-            });
+    public void cancelAllRequests() throws IllegalStateException {
+        if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
+            throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
+        mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
+            @Override
+            public boolean apply(Request<?> request) {
+                return true;
+            }
+        });
+
+        mRequestQueueForPatchRequests.cancelAll(new RequestQueue.RequestFilter() {
+            @Override
+            public boolean apply(Request<?> request) {
+                return true;
+            }
+        });
+    }
+
+    public enum ErrorType {
+        TIMEOUT,
+        AUTH_FAILURE,
+        SERVER_ERROR,
+        NETWORK_ERROR,
+        PARSE_ERROR,
+        UNKNOWN_ERROR
     }
 }

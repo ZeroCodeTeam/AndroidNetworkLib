@@ -1,5 +1,7 @@
 package com.zerocodeteam.networktestapp;
 
+import android.util.Log;
+
 import com.android.volley.Request;
 import com.zerocodeteam.network.ZctNetwork;
 import com.zerocodeteam.network.request.StringRequest;
@@ -16,31 +18,23 @@ public class API {
     //API urls
     private static final String API_BASE_URL = "http://echo.jsontest.com";
     private static final String API_PING_SERVER = "/key/value/one/two";
+    private static String LOG = API.class.getSimpleName();
 
     /**
-     * Starts network request
+     * Test network call
      *
-     * @param request
+     * @param listener - Response listener
      */
-    private static void startNetworkRequest(Request request, String... tag) {
-//        mLogger.d("STARTING REQUEST " + request.getUrl());
-        if (tag.length == 0) {
-            ZctNetwork.getInstance().sendRequest(request);
-        } else {
-            ZctNetwork.getInstance().sendRequest(request, tag[0]);
-        }
-    }
-
-    /**
-     * Performs login procedure for given loginData
-     *
-     * @param listener
-     */
-    public static void pingServer(ResponseListener<String> listener) {
+    public static void echoCall(ResponseListener<String> listener) {
 
         // Perform request
         StringRequest request = new StringRequest(Request.Method.POST, API_BASE_URL + API_PING_SERVER, listener, generateDefaultHeaders(), null, null);
-        startNetworkRequest(request);
+        try {
+            ZctNetwork.getInstance().sendRequest(request);
+        } catch (IllegalStateException ise) {
+            Log.e(LOG, ise.toString());
+        }
+
     }
 
     /**
