@@ -6,14 +6,6 @@ android {
 
     useLibrary 'org.apache.http.legacy'
 
-    packagingOptions {
-        exclude 'META-INF/DEPENDENCIES'
-        exclude 'META-INF/NOTICE'
-        exclude 'META-INF/LICENSE'
-        exclude 'META-INF/LICENSE.txt'
-        exclude 'META-INF/NOTICE.txt'
-    }
-
     defaultConfig {
         applicationId "com.zerocodeteam.networktestapp"
         minSdkVersion 15
