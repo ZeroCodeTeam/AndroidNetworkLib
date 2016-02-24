@@ -13,6 +13,8 @@ import com.android.volley.toolbox.HttpClientStack;
 import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.Volley;
 
+import java.util.HashMap;
+
 /**
  * Created by ZeroCodeTeam on 23.7.2015.
  */
@@ -77,6 +79,16 @@ public class ZctNetwork {
         }
         HttpStack httpStack = new HttpClientStack(AndroidHttpClient.newInstance(userAgent));
         mRequestQueueForPatchRequests = Volley.newRequestQueue(context.getApplicationContext(), httpStack);
+    }
+
+    /**
+     * @return Generated default JSON headers
+     */
+    public HashMap<String, String> generateDefaultHeaders() {
+        HashMap<String, String> headers = new HashMap<>();
+        headers.put("Content-Type", "application/json");
+        headers.put("Accept", "application/json");
+        return headers;
     }
 
     /**
