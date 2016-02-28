@@ -2,8 +2,6 @@ package com.zerocodeteam.network.request;
 
 import com.zerocodeteam.network.response.ResponseListener;
 
-import org.apache.http.entity.StringEntity;
-
 import java.util.Map;
 
 /**
@@ -19,7 +17,7 @@ public class StringRequest extends NetworkRequest<String> {
      * @param stringEntity Body content
      * @param listener     Handler for network response
      */
-    public StringRequest(int method, String url, ResponseListener listener, Map<String, String> headers, StringEntity stringEntity, Object cookie) {
+    public StringRequest(int method, String url, ResponseListener listener, Map<String, String> headers, Object stringEntity, Object cookie) {
         super(method, url, listener, String.class, headers, stringEntity, cookie);
     }
 }

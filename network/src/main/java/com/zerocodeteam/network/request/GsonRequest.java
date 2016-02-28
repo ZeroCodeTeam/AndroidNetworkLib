@@ -2,8 +2,6 @@ package com.zerocodeteam.network.request;
 
 import com.zerocodeteam.network.response.ResponseListener;
 
-import org.apache.http.entity.StringEntity;
-
 import java.util.Map;
 
 /**
@@ -22,7 +20,7 @@ public class GsonRequest<T> extends NetworkRequest<T> {
      * @param stringEntity Body content
      * @param cookie       Metadata that are store locally and send back to requester
      */
-    public GsonRequest(int method, String url, ResponseListener<T> listener, Class<T> clazz, Map<String, String> headers, StringEntity stringEntity, Object cookie) {
+    public GsonRequest(int method, String url, ResponseListener<T> listener, Class<T> clazz, Map<String, String> headers, Object stringEntity, Object cookie) {
         super(method, url, listener, clazz, headers, stringEntity, cookie);
     }
 

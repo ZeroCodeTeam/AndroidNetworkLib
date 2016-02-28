@@ -35,12 +35,12 @@ public abstract class NetworkRequest<T> extends Request<T> {
     private Object mCookie;
     private Map<String, String> mResponseHeaders;
 
-    public NetworkRequest(int method, String url, ResponseListener listener, Class<T> clazz, Map<String, String> headers, StringEntity stringEntity, Object cookie) {
+    public NetworkRequest(int method, String url, ResponseListener listener, Class<T> clazz, Map<String, String> headers, Object stringEntity, Object cookie) {
         super(method, url, null);
         this.mHeaders = headers;
         this.mListener = listener;
         this.mClass = clazz;
-        this.mStringEntity = stringEntity;
+        this.mStringEntity = transformModelToEntity(stringEntity);
         this.mCookie = cookie;
     }
 
@@ -126,5 +126,25 @@ public abstract class NetworkRequest<T> extends Request<T> {
             VolleyLog.e("JsonSyntaxException: %s", jse);
             return Response.error(new ParseError(response));
         }
+    }
+
+    /**
+     * Converts model object to request body
+     */
+    private StringEntity transformModelToEntity(Object object) {
+
+        //Populate string entity
+        StringEntity stringEntity = null;
+
+        if (object == null) {
+            return stringEntity;
+        }
+        try {
+            stringEntity = new StringEntity(object.toString(), "UTF-8");
+            VolleyLog.e("transformModelToEntity: " + object.toString());
+        } catch (UnsupportedEncodingException e) {
+            VolleyLog.e(e.toString());
+        }
+        return stringEntity;
     }
 }
