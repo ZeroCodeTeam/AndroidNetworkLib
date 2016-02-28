@@ -115,7 +115,6 @@ public class ZctNetwork {
      * @throws IllegalStateException - Force user to call init method first
      */
     public <T> void sendRequest(Request<T> req, String tag) throws IllegalStateException {
-
         if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
