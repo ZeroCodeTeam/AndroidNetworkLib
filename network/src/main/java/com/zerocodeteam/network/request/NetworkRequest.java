@@ -11,7 +11,6 @@ import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.HttpHeaderParser;
-import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.zerocodeteam.network.ZctNetwork;
 import com.zerocodeteam.network.response.ResponseListener;
@@ -48,6 +47,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
     protected void deliverResponse(T response) {
         if (mListener != null) {
             mListener.onResponseSuccess(response, mResponseHeaders, mCookie);
+            ZctNetwork.getInstance().dismissProgressDialog();
         }
     }
 
@@ -67,6 +67,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
         } else {
             mListener.onErrorResponse(error, ZctNetwork.ErrorType.UNKNOWN_ERROR, mResponseHeaders, mCookie);
         }
+        ZctNetwork.getInstance().dismissProgressDialog();
     }
 
     @Override
@@ -115,7 +116,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
                         HttpHeaderParser.parseCacheHeaders(response));
             } else {
                 return Response.success(
-                        new Gson().fromJson(json, mClass),
+                        ZctNetwork.getInstance().getGson().fromJson(json, mClass),
                         HttpHeaderParser.parseCacheHeaders(response));
             }
 
