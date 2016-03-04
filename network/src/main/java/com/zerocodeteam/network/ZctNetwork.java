@@ -1,10 +1,12 @@
 package com.zerocodeteam.network;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.http.AndroidHttpClient;
 import android.text.TextUtils;
+import android.view.WindowManager;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
@@ -12,6 +14,7 @@ import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.HttpClientStack;
 import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
 
 import java.util.HashMap;
 
@@ -26,6 +29,7 @@ public class ZctNetwork {
      */
     public static int DEFAULT_TIMEOUT_MS;
     private static ZctNetwork sInstance;
+    private static Gson sGson;
     /**
      * Queue of network requests
      */
@@ -34,6 +38,8 @@ public class ZctNetwork {
      * Requests queue for PATCH requests
      */
     private RequestQueue mRequestQueueForPatchRequests;
+    private ProgressDialog mProgressDialog;
+    private boolean mShowDialog;
 
     private ZctNetwork() {
     }
@@ -41,6 +47,7 @@ public class ZctNetwork {
     public static ZctNetwork getInstance() {
         if (sInstance == null) {
             sInstance = new ZctNetwork();
+            sGson = new Gson();
         }
         return sInstance;
     }
@@ -51,22 +58,36 @@ public class ZctNetwork {
      * @param context - Application context
      */
     public void init(Context context) {
-        init(context, DefaultRetryPolicy.DEFAULT_TIMEOUT_MS);
+        init(context, "Loading. Please wait...", true, DefaultRetryPolicy.DEFAULT_TIMEOUT_MS);
     }
 
     /**
      * Client must call this method after initializing call of getInstance() method.
      *
      * @param context          - Application context
+     * @param dialogMsg        - Dialog message
+     * @param showDialog       - Show dialog or not
      * @param defaultTimeoutMS - Default request timeout in MS
      */
-    public void init(Context context, int defaultTimeoutMS) {
+    public void init(Context context, String dialogMsg, boolean showDialog, int defaultTimeoutMS) {
 
         if (defaultTimeoutMS != 0) {
             DEFAULT_TIMEOUT_MS = defaultTimeoutMS;
         }
 
+        mShowDialog = showDialog;
         mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
+
+        if (showDialog) {
+            mProgressDialog = new ProgressDialog(context);
+            if (TextUtils.isEmpty(dialogMsg)) {
+                dialogMsg = "Loading. Please wait...";
+            }
+            mProgressDialog.setMessage(dialogMsg);
+            mProgressDialog.setIndeterminate(true);
+            mProgressDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        }
+
         /**
          * Workaround for volley don't handle PATCH requests by default
          */
@@ -116,6 +137,8 @@ public class ZctNetwork {
      */
     public <T> void sendRequest(Request<T> req, String tag) throws IllegalStateException {
 
+        showProgressDialog();
+
         if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
@@ -146,6 +169,7 @@ public class ZctNetwork {
      * @throws IllegalStateException - Force user to call init method first
      */
     public void cancelRequests(final String tag) throws IllegalStateException {
+        dismissProgressDialog();
 
         if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
@@ -179,6 +203,8 @@ public class ZctNetwork {
      * @throws IllegalStateException - Force user to call init method first
      */
     public void cancelAllRequests() throws IllegalStateException {
+        dismissProgressDialog();
+
         if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
@@ -195,6 +221,23 @@ public class ZctNetwork {
                 return true;
             }
         });
+    }
+
+    public Gson getGson() {
+        return sGson;
+    }
+
+    public void showProgressDialog() {
+        if (!mShowDialog) {
+            return;
+        }
+        mProgressDialog.show();
+    }
+
+    public void dismissProgressDialog() {
+        if (mShowDialog && mProgressDialog.isShowing()) {
+            mProgressDialog.dismiss();
+        }
     }
 
     public enum ErrorType {
