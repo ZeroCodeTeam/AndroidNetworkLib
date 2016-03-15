@@ -6,7 +6,6 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.http.AndroidHttpClient;
 import android.text.TextUtils;
-import android.view.WindowManager;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
@@ -16,7 +15,6 @@ import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
-import java.util.HashMap;
 
 /**
  * Created by ZeroCodeTeam on 23.7.2015.
@@ -30,6 +28,7 @@ public class ZctNetwork {
     public static int DEFAULT_TIMEOUT_MS;
     private static ZctNetwork sInstance;
     private static Gson sGson;
+
     /**
      * Queue of network requests
      */
@@ -38,8 +37,10 @@ public class ZctNetwork {
      * Requests queue for PATCH requests
      */
     private RequestQueue mRequestQueueForPatchRequests;
+
     private ProgressDialog mProgressDialog;
     private boolean mShowDialog;
+    private String mDialogMsg;
 
     private ZctNetwork() {
     }
@@ -76,17 +77,8 @@ public class ZctNetwork {
         }
 
         mShowDialog = showDialog;
+        mDialogMsg = dialogMsg;
         mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
-
-        if (showDialog) {
-            mProgressDialog = new ProgressDialog(context);
-            if (TextUtils.isEmpty(dialogMsg)) {
-                dialogMsg = "Loading. Please wait...";
-            }
-            mProgressDialog.setMessage(dialogMsg);
-            mProgressDialog.setIndeterminate(true);
-            mProgressDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
-        }
 
         /**
          * Workaround for volley don't handle PATCH requests by default
@@ -103,25 +95,15 @@ public class ZctNetwork {
     }
 
     /**
-     * @return Generated default JSON headers
-     */
-    public HashMap<String, String> generateDefaultHeaders() {
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
-        headers.put("Accept", "application/json");
-        return headers;
-    }
-
-    /**
      * Add new request to request queue and start fetching from network
      *
      * @param req - Network request that should be executed
      * @param <T> - Generic request object
      * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req) throws IllegalStateException {
+    public <T> void sendRequest(Request<T> req, Context context) throws IllegalStateException {
         try {
-            sendRequest(req, DEFAULT_REQUEST_TAG);
+            sendRequest(req, DEFAULT_REQUEST_TAG, context);
         } catch (IllegalStateException ise) {
             throw ise;
         }
@@ -135,9 +117,9 @@ public class ZctNetwork {
      * @param <T> - Generic request object
      * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req, String tag) throws IllegalStateException {
+    public <T> void sendRequest(Request<T> req, String tag, Context context) throws IllegalStateException {
 
-        showProgressDialog();
+        showProgressDialog(context);
 
         if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
@@ -227,15 +209,30 @@ public class ZctNetwork {
         return sGson;
     }
 
-    public void showProgressDialog() {
+    public void showProgressDialog(Context context) {
         if (!mShowDialog) {
             return;
         }
+
+        if (mProgressDialog == null) {
+
+            if (TextUtils.isEmpty(mDialogMsg)) {
+                mDialogMsg = "Loading. Please wait...";
+            }
+            mProgressDialog = ProgressDialog.show(context, "", mDialogMsg, true);
+            return;
+        }
+
+        if (mProgressDialog.isShowing()) {
+            return;
+        }
+
         mProgressDialog.show();
     }
 
     public void dismissProgressDialog() {
-        if (mShowDialog && mProgressDialog.isShowing()) {
+
+        if (mShowDialog && mProgressDialog != null && mProgressDialog.isShowing()) {
             mProgressDialog.dismiss();
         }
     }
