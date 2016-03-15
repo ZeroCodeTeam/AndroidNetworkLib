@@ -15,8 +15,11 @@ import com.android.volley.toolbox.HttpClientStack;
 import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
+<<<<<<< HEAD
 
 import java.util.HashMap;
+=======
+>>>>>>> Expose GSON from ZCTNetwork class.
 
 /**
  * Created by ZeroCodeTeam on 23.7.2015.
@@ -30,6 +33,10 @@ public class ZctNetwork {
     public static int DEFAULT_TIMEOUT_MS;
     private static ZctNetwork sInstance;
     private static Gson sGson;
+<<<<<<< HEAD
+=======
+
+>>>>>>> Expose GSON from ZCTNetwork class.
     /**
      * Queue of network requests
      */
@@ -40,6 +47,10 @@ public class ZctNetwork {
     private RequestQueue mRequestQueueForPatchRequests;
     private ProgressDialog mProgressDialog;
     private boolean mShowDialog;
+<<<<<<< HEAD
+=======
+    private String mDialogMsg;
+>>>>>>> Expose GSON from ZCTNetwork class.
 
     private ZctNetwork() {
     }
@@ -76,6 +87,7 @@ public class ZctNetwork {
         }
 
         mShowDialog = showDialog;
+<<<<<<< HEAD
         mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
 
         if (showDialog) {
@@ -88,6 +100,11 @@ public class ZctNetwork {
             mProgressDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
         }
 
+=======
+        mDialogMsg = dialogMsg;
+        mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
+
+>>>>>>> Expose GSON from ZCTNetwork class.
         /**
          * Workaround for volley don't handle PATCH requests by default
          */
@@ -103,25 +120,15 @@ public class ZctNetwork {
     }
 
     /**
-     * @return Generated default JSON headers
-     */
-    public HashMap<String, String> generateDefaultHeaders() {
-        HashMap<String, String> headers = new HashMap<>();
-        headers.put("Content-Type", "application/json");
-        headers.put("Accept", "application/json");
-        return headers;
-    }
-
-    /**
      * Add new request to request queue and start fetching from network
      *
      * @param req - Network request that should be executed
      * @param <T> - Generic request object
      * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req) throws IllegalStateException {
+    public <T> void sendRequest(Request<T> req, Context context) throws IllegalStateException {
         try {
-            sendRequest(req, DEFAULT_REQUEST_TAG);
+            sendRequest(req, DEFAULT_REQUEST_TAG, context);
         } catch (IllegalStateException ise) {
             throw ise;
         }
@@ -135,7 +142,9 @@ public class ZctNetwork {
      * @param <T> - Generic request object
      * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req, String tag) throws IllegalStateException {
+    public <T> void sendRequest(Request<T> req, String tag, Context context) throws IllegalStateException {
+
+        showProgressDialog(context);
 
         showProgressDialog();
 
@@ -227,16 +236,43 @@ public class ZctNetwork {
         return sGson;
     }
 
+<<<<<<< HEAD
     public void showProgressDialog() {
         if (!mShowDialog) {
             return;
         }
+=======
+    public void showProgressDialog(Context context) {
+        if (!mShowDialog) {
+            return;
+        }
+
+        if (mProgressDialog == null) {
+
+            if (TextUtils.isEmpty(mDialogMsg)) {
+                mDialogMsg = "Loading. Please wait...";
+            }
+            mProgressDialog = ProgressDialog.show(context, "", mDialogMsg, true);
+            return;
+        }
+
+        if (!mProgressDialog.isShowing()) {
+            return;
+        }
+
+>>>>>>> Expose GSON from ZCTNetwork class.
         mProgressDialog.show();
     }
 
     public void dismissProgressDialog() {
+<<<<<<< HEAD
         if (mShowDialog && mProgressDialog.isShowing()) {
             mProgressDialog.dismiss();
+=======
+        if (mShowDialog && mProgressDialog != null && mProgressDialog.isShowing()) {
+            mProgressDialog.dismiss();
+            mProgressDialog = null;
+>>>>>>> Expose GSON from ZCTNetwork class.
         }
     }
 

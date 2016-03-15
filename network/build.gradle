@@ -13,7 +13,11 @@ ext {
     siteUrl = 'https://github.com/ZeroCodeTeam/AndroidNetworkLib'
     gitUrl = 'https://github.com/ZeroCodeTeam/AndroidNetworkLib.git'
 
+<<<<<<< HEAD
     libraryVersion = '0.0.9'
+=======
+    libraryVersion = '0.1.1'
+>>>>>>> Expose GSON from ZCTNetwork class.
 
     developerId = 'simikic-rade'
     developerName = 'Rade Simikic'

@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -65,9 +66,15 @@ public class MainActivity extends AppCompatActivity {
                                 errorMsg = "PARSE_ERROR";
                                 break;
                         }
-                        mTextView.append("\nE: [TYPE: " + errorMsg + " code:" + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + ":" + error.getNetworkTimeMs() + "ms] " + error.getMessage());
+                        mTextView.append("\nE: [TYPE: " + errorMsg + " code:" + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + ":" + error.getNetworkTimeMs() + "ms]");
+                        try {
+                            mTextView.append(error.networkResponse.data != null ? new String(error.networkResponse.data) : error.getMessage());
+                        } catch (NullPointerException npe) {
+                            Log.e("Error", npe.toString());
+                        }
+
                     }
-                });
+                }, MainActivity.this);
             }
         });
     }
