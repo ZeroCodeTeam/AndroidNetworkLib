@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         mTextView.append("\nE: [TYPE: " + errorMsg + " code:" + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + ":" + error.getNetworkTimeMs() + "ms] " + error.getMessage());
                     }
-                });
+                }, MainActivity.this);
             }
         });
     }
