@@ -15,11 +15,8 @@ import com.google.gson.JsonSyntaxException;
 import com.zerocodeteam.network.ZctNetwork;
 import com.zerocodeteam.network.response.ResponseListener;
 
-import org.apache.http.entity.StringEntity;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -27,20 +24,24 @@ import java.util.Map;
  */
 public abstract class NetworkRequest<T> extends Request<T> {
 
+    private static final String DEFAULT_BODY_CONTENT_TYPE = "application/json";
+
     private ResponseListener mListener;
     private Class<T> mClass;
-    private Map<String, String> mHeaders;
-    private StringEntity mStringEntity;
+    private Map<String, String> mRequestHeaders;
+    private String mBodyContent;
+    private String mBodyContentType;
     private Object mCookie;
     private Map<String, String> mResponseHeaders;
 
-    public NetworkRequest(int method, String url, ResponseListener listener, Class<T> clazz, Map<String, String> headers, Object stringEntity, Object cookie) {
+    public NetworkRequest(int method, String url, ResponseListener listener, Class<T> clazz, Object bodyContent, Object cookie) {
         super(method, url, null);
-        this.mHeaders = headers;
         this.mListener = listener;
         this.mClass = clazz;
-        this.mStringEntity = transformModelToEntity(stringEntity);
+        this.mBodyContent = ZctNetwork.getInstance().getGson().toJson(bodyContent);
         this.mCookie = cookie;
+        this.mRequestHeaders = getDefaultRequestHeaders();
+        this.mBodyContentType = getDefaultBodyContentType();
     }
 
     @Override
@@ -49,6 +50,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
             mListener.onResponseSuccess(response, mResponseHeaders, mCookie);
             ZctNetwork.getInstance().dismissProgressDialog();
         }
+        ZctNetwork.getInstance().dismissProgressDialog();
     }
 
     @Override
@@ -71,30 +73,22 @@ public abstract class NetworkRequest<T> extends Request<T> {
     }
 
     @Override
+    public String getBodyContentType() {
+        return mBodyContentType != null ? mBodyContentType : super.getBodyContentType();
+    }
+
+    @Override
     public Map<String, String> getHeaders() throws AuthFailureError {
-        return mHeaders != null ? mHeaders : super.getHeaders();
+        return mRequestHeaders != null ? mRequestHeaders : super.getHeaders();
     }
 
     @Override
     public byte[] getBody() throws AuthFailureError {
-        if (mStringEntity != null) {
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            try {
-                mStringEntity.writeTo(outputStream);
-            } catch (IOException e) {
-                VolleyLog.e("IOException @ " + getClass().getSimpleName());
-            }
-            return outputStream.toByteArray();
-        } else {
+        if (mBodyContent == null || mBodyContent.equals("null")) {
             return super.getBody();
         }
+        return mBodyContent.getBytes();
     }
-
-    @Override
-    public String getBodyContentType() {
-        return mStringEntity != null ? mStringEntity.getContentType().getValue() : super.getBodyContentType();
-    }
-
 
     @Override
     protected Response<T> parseNetworkResponse(NetworkResponse response) {
@@ -129,23 +123,22 @@ public abstract class NetworkRequest<T> extends Request<T> {
         }
     }
 
-    /**
-     * Converts model object to request body
-     */
-    private StringEntity transformModelToEntity(Object object) {
+    public Map<String, String> getDefaultRequestHeaders() {
+        HashMap<String, String> requestHeaders = new HashMap<>();
+        requestHeaders.put("Content-Type", "application/json");
+        requestHeaders.put("Accept", "application/json");
+        return requestHeaders;
+    }
 
-        //Populate string entity
-        StringEntity stringEntity = null;
+    public void setDefaultRequestHeaders(Map<String, String> requestHeaders) {
+        this.mRequestHeaders = requestHeaders;
+    }
 
-        if (object == null) {
-            return stringEntity;
-        }
-        try {
-            stringEntity = new StringEntity(object.toString(), "UTF-8");
-            VolleyLog.e("transformModelToEntity: " + object.toString());
-        } catch (UnsupportedEncodingException e) {
-            VolleyLog.e(e.toString());
-        }
-        return stringEntity;
+    public String getDefaultBodyContentType() {
+        return DEFAULT_BODY_CONTENT_TYPE;
+    }
+
+    public void setDefaultBodyContentType(String bodyContentType) {
+        this.mBodyContentType = bodyContentType;
     }
 }
