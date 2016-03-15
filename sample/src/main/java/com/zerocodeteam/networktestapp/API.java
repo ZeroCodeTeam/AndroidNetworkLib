@@ -1,5 +1,6 @@
 package com.zerocodeteam.networktestapp;
 
+import android.content.Context;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -23,12 +24,12 @@ public class API {
      *
      * @param listener - Response listener
      */
-    public static void echoCall(ResponseListener<String> listener) {
+    public static void echoCall(ResponseListener<String> listener, Context context) {
 
         // Perform request
-        StringRequest request = new StringRequest(Request.Method.POST, API_BASE_URL + API_PING_SERVER, listener, ZctNetwork.getInstance().generateDefaultHeaders(), null, null);
+        StringRequest request = new StringRequest(Request.Method.POST, API_BASE_URL + API_PING_SERVER, listener, null, null);
         try {
-            ZctNetwork.getInstance().sendRequest(request);
+            ZctNetwork.getInstance().sendRequest(request, context);
         } catch (IllegalStateException ise) {
             Log.e(LOG, ise.toString());
         }
