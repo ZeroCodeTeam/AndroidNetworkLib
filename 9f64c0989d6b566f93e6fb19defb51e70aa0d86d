@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "da9b358b_c7d857f2",
+        "filename": "network/src/main/java/com/zerocodeteam/network/request/NetworkRequest.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 89,
+      "author": {
+        "id": 1006953
+      },
+      "writtenOn": "2016-03-29T22:08:41Z",
+      "side": 1,
+      "message": "if (mBodyContent.equals(\"null\"))",
+      "range": {
+        "startLine": 89,
+        "startChar": 34,
+        "endLine": 89,
+        "endChar": 35
+      },
+      "revId": "9f64c0989d6b566f93e6fb19defb51e70aa0d86d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
