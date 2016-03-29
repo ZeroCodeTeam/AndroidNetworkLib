@@ -2,6 +2,23 @@
   "comments": [
     {
       "key": {
+        "uuid": "da9b358b_47f32774",
+        "filename": "network/src/main/java/com/zerocodeteam/network/ZctNetwork.java",
+        "patchSetId": 3
+      },
+      "lineNbr": 229,
+      "author": {
+        "id": 1006953
+      },
+      "writtenOn": "2016-03-29T22:38:49Z",
+      "side": 1,
+      "message": "Problem je context koji se menja, zato treba izbeci ovaj if.    \n\npublic void showProgressDialog(Context context) {\n        if (!mShowDialog) {\n            return;\n        }\n\n        if (TextUtils.isEmpty(mDialogMsg)) {\n            mDialogMsg \u003d \"Loading. Please wait...\";\n        }\n\n        if (mProgressDialog !\u003d null \u0026\u0026 mProgressDialog.isShowing()) {\n            return;\n        }\n        \n        mProgressDialog \u003d ProgressDialog.show(context, \"\", mDialogMsg, true);\n    }",
+      "revId": "9f64c0989d6b566f93e6fb19defb51e70aa0d86d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "da9b358b_c7d857f2",
         "filename": "network/src/main/java/com/zerocodeteam/network/request/NetworkRequest.java",
         "patchSetId": 3
