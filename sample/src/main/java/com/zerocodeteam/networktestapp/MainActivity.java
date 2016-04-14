@@ -8,13 +8,13 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.VolleyError;
+import com.zerocodeteam.network.ResponseListener;
 import com.zerocodeteam.network.ZctNetwork;
-import com.zerocodeteam.network.response.ResponseListener;
 
 import java.util.Map;
-
 
 /**
  * Created by ZeroCodeTeam on 05/12/15.
@@ -30,6 +30,10 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mTextView = (TextView) findViewById(R.id.logMsg);
+
+        if (!ZctNetwork.getUtils().isDeviceOnline(this.getApplicationContext())) {
+            Toast.makeText(getApplicationContext(), "DEVICE OFFLINE", Toast.LENGTH_LONG).show();
+        }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {

@@ -1,4 +1,4 @@
-package com.zerocodeteam.network.request;
+package com.zerocodeteam.network;
 
 import com.android.volley.AuthFailureError;
 import com.android.volley.NetworkError;
@@ -9,11 +9,8 @@ import com.android.volley.Response;
 import com.android.volley.ServerError;
 import com.android.volley.TimeoutError;
 import com.android.volley.VolleyError;
-import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.HttpHeaderParser;
 import com.google.gson.JsonSyntaxException;
-import com.zerocodeteam.network.ZctNetwork;
-import com.zerocodeteam.network.response.ResponseListener;
 
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
@@ -26,7 +23,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
 
     private static final String DEFAULT_BODY_CONTENT_TYPE = "application/json";
 
-    private ResponseListener mListener;
+    private ResponseListener<T> mListener;
     private Class<T> mClass;
     private Map<String, String> mRequestHeaders;
     private String mBodyContent;
@@ -34,14 +31,17 @@ public abstract class NetworkRequest<T> extends Request<T> {
     private Object mCookie;
     private Map<String, String> mResponseHeaders;
 
-    public NetworkRequest(int method, String url, ResponseListener listener, Class<T> clazz, Object bodyContent, Object cookie) {
+    public NetworkRequest(int method, String url, ResponseListener<T> listener, Class<T> clazz, Object bodyContent, Object cookie) {
         super(method, url, null);
+
         this.mListener = listener;
         this.mClass = clazz;
-        this.mBodyContent = ZctNetwork.getInstance().getGson().toJson(bodyContent);
+        this.mBodyContent = ZctNetwork.getUtils().getGsonInstance().toJson(bodyContent);
         this.mCookie = cookie;
         this.mRequestHeaders = getDefaultRequestHeaders();
         this.mBodyContentType = getDefaultBodyContentType();
+
+        ZctNetwork.log(url);
     }
 
     @Override
@@ -49,6 +49,8 @@ public abstract class NetworkRequest<T> extends Request<T> {
         if (mListener != null) {
             mListener.onResponseSuccess(response, mResponseHeaders, mCookie);
             ZctNetwork.getInstance().dismissProgressDialog();
+        } else {
+            ZctNetwork.log("Response listener is null");
         }
         ZctNetwork.getInstance().dismissProgressDialog();
     }
@@ -69,16 +71,19 @@ public abstract class NetworkRequest<T> extends Request<T> {
         } else {
             mListener.onErrorResponse(error, ZctNetwork.ErrorType.UNKNOWN_ERROR, mResponseHeaders, mCookie);
         }
+        ZctNetwork.log("Deliver error: " + error.getMessage());
         ZctNetwork.getInstance().dismissProgressDialog();
     }
 
     @Override
     public String getBodyContentType() {
+        ZctNetwork.log("Body type: " + mBodyContentType != null ? mBodyContentType : super.getBodyContentType());
         return mBodyContentType != null ? mBodyContentType : super.getBodyContentType();
     }
 
     @Override
     public Map<String, String> getHeaders() throws AuthFailureError {
+        ZctNetwork.log("Headers: " + (mRequestHeaders != null ? mRequestHeaders : super.getHeaders()));
         return mRequestHeaders != null ? mRequestHeaders : super.getHeaders();
     }
 
@@ -87,9 +92,16 @@ public abstract class NetworkRequest<T> extends Request<T> {
         if (mBodyContent == null || mBodyContent.equals("null")) {
             return super.getBody();
         }
+        ZctNetwork.log("Body content: " + mBodyContent);
         return mBodyContent.getBytes();
     }
 
+    /**
+     * Watch out for NPE because GSON does not check schema.
+     *
+     * @param response
+     * @return
+     */
     @Override
     protected Response<T> parseNetworkResponse(NetworkResponse response) {
         try {
@@ -99,9 +111,10 @@ public abstract class NetworkRequest<T> extends Request<T> {
                 mResponseHeaders = response.headers;
                 json = new String(response.data, HttpHeaderParser.parseCharset(response.headers));
             } catch (UnsupportedEncodingException uee) {
-                VolleyLog.e("Error charset parsing: %s", uee);
+                ZctNetwork.log("Error charset parsing: " + uee);
                 json = new String(response.data);
             }
+            ZctNetwork.log("Response: " + json);
             if (mClass == String.class) {
                 return Response.success((T) json, HttpHeaderParser.parseCacheHeaders(response));
             } else if (json.equals("")) {
@@ -110,15 +123,15 @@ public abstract class NetworkRequest<T> extends Request<T> {
                         HttpHeaderParser.parseCacheHeaders(response));
             } else {
                 return Response.success(
-                        ZctNetwork.getInstance().getGson().fromJson(json, mClass),
+                        ZctNetwork.getUtils().getGsonInstance().fromJson(json, mClass),
                         HttpHeaderParser.parseCacheHeaders(response));
             }
 
         } catch (UnsupportedOperationException uoe) {
-            VolleyLog.e("UnsupportedOperationException: %s", uoe);
+            ZctNetwork.log("UnsupportedOperationException: " + uoe);
             return Response.error(new ParseError(response));
         } catch (JsonSyntaxException jse) {
-            VolleyLog.e("JsonSyntaxException: %s", jse);
+            ZctNetwork.log("JsonSyntaxException: " + jse);
             return Response.error(new ParseError(response));
         }
     }
