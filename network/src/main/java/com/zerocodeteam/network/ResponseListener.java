@@ -1,4 +1,4 @@
-package com.zerocodeteam.network.response;
+package com.zerocodeteam.network;
 
 import com.android.volley.VolleyError;
 import com.zerocodeteam.network.ZctNetwork.ErrorType;
