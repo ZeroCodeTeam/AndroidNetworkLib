@@ -2,18 +2,13 @@ package com.zerocodeteam.network;
 
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
-import android.net.http.AndroidHttpClient;
-import android.text.TextUtils;
+import android.os.Handler;
+import android.util.Log;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.HttpClientStack;
-import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.Volley;
-import com.google.gson.Gson;
 
 
 /**
@@ -21,76 +16,71 @@ import com.google.gson.Gson;
  */
 public class ZctNetwork {
 
-    public static final String DEFAULT_REQUEST_TAG = ZctNetwork.class.getSimpleName();
-    /**
-     * Time out request time, 60 seconds default
-     */
-    public static int DEFAULT_TIMEOUT_MS;
-    private static ZctNetwork sInstance;
-    private static Gson sGson;
-
+    public static final String DEFAULT_TAG = ZctNetwork.class.getSimpleName();
+    private static volatile ZctNetwork sInstance;
+    private static volatile ZctNetworkUtils sUtilsInstance;
+    private static Boolean mLoggingEnabled;
+    private long MIN_DIALOG_TIME = 500;
     /**
      * Queue of network requests
      */
     private RequestQueue mRequestQueue;
-    /**
-     * Requests queue for PATCH requests
-     */
-    private RequestQueue mRequestQueueForPatchRequests;
-
-    private ProgressDialog mProgressDialog;
-    private boolean mShowDialog;
+    private Context mContext;
+    private Integer mRequestTimeout;
+    private String mRequestTag;
+    private Boolean mDialogEnabled;
     private String mDialogMsg;
+    private ProgressDialog mProgressDialog;
 
-    private ZctNetwork() {
+    private Long mCurTime;
+    private Handler mUiHelper;
+
+
+    private ZctNetwork(Builder builder) {
+        this.mContext = builder.context;
+        this.mRequestTimeout = builder.requestTimeout;
+        this.mRequestTag = builder.requestTag;
+        this.mDialogEnabled = builder.dialogEnabled;
+        this.mDialogMsg = builder.dialogMsg;
+        this.mRequestQueue = Volley.newRequestQueue(builder.context.getApplicationContext());
+        this.mUiHelper = new Handler();
+        mLoggingEnabled = builder.loggingEnabled;
+        log(ZctNetwork.class.getSimpleName() + " object created");
     }
 
-    public static ZctNetwork getInstance() {
+    public static ZctNetwork with(Context context) {
         if (sInstance == null) {
-            sInstance = new ZctNetwork();
-            sGson = new Gson();
+            synchronized (ZctNetwork.class) {
+                if (sInstance == null) {
+                    sInstance = new Builder(context).build();
+                }
+            }
+        } else {
+            log("New context associated");
+            sInstance.mContext = context;
         }
         return sInstance;
     }
 
-    /**
-     * Client must call this method to initialize environment.
-     *
-     * @param context - Application context
-     */
-    public void init(Context context) {
-        init(context, "Loading. Please wait...", true, DefaultRetryPolicy.DEFAULT_TIMEOUT_MS);
+    protected static ZctNetwork getInstance() {
+        return sInstance;
     }
 
-    /**
-     * Client must call this method after initializing call of getInstance() method.
-     *
-     * @param context          - Application context
-     * @param dialogMsg        - Dialog message
-     * @param showDialog       - Show dialog or not
-     * @param defaultTimeoutMS - Default request timeout in MS
-     */
-    public void init(Context context, String dialogMsg, boolean showDialog, int defaultTimeoutMS) {
-        if (defaultTimeoutMS != 0) {
-            DEFAULT_TIMEOUT_MS = defaultTimeoutMS;
+    protected static void log(String msg) {
+        if (mLoggingEnabled) {
+            Log.e(DEFAULT_TAG, msg);
         }
+    }
 
-        mShowDialog = showDialog;
-        mDialogMsg = dialogMsg;
-        mRequestQueue = Volley.newRequestQueue(context.getApplicationContext());
-
-        /**
-         * Workaround for volley don't handle PATCH requests by default
-         */
-        String userAgent = "volley/0";
-        try {
-            String packageName = context.getPackageName();
-            PackageInfo info = context.getPackageManager().getPackageInfo(packageName, 0);
-            userAgent = packageName + "/" + info.versionCode;
-        } catch (PackageManager.NameNotFoundException e) {
+    public static ZctNetworkUtils getUtils() {
+        if (sUtilsInstance == null) {
+            synchronized (ZctNetworkUtils.class) {
+                if (sUtilsInstance == null) {
+                    sUtilsInstance = new ZctNetworkUtils();
+                }
+            }
         }
-        HttpStack httpStack = new HttpClientStack(AndroidHttpClient.newInstance(userAgent));
-        mRequestQueueForPatchRequests = Volley.newRequestQueue(context.getApplicationContext(), httpStack);
+        return sUtilsInstance;
     }
 
     /**
@@ -100,47 +90,36 @@ public class ZctNetwork {
      * @param <T> - Generic request object
      * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req, Context context) throws IllegalStateException {
-        try {
-            sendRequest(req, DEFAULT_REQUEST_TAG, context);
-        } catch (IllegalStateException ise) {
-            throw ise;
-        }
+    public <T> void executeRequest(Request<T> req) throws IllegalStateException {
+        executeRequest(req, false);
+
     }
 
     /**
      * Add new request to request queue and start fetching from network
      *
      * @param req - Network request that should be executed
-     * @param tag - Tag that uniquely identify network request
      * @param <T> - Generic request object
      * @throws IllegalStateException - Force user to call init method first
      */
-    public <T> void sendRequest(Request<T> req, String tag, Context context) throws IllegalStateException {
+    public <T> void executeRequest(Request<T> req, Boolean silent) throws IllegalStateException {
 
-        showProgressDialog(context);
+        if (!silent && mDialogEnabled) {
+            showProgressDialog(mContext);
+        }
 
-        if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
+        if (mRequestQueue == null) {
+            log("Object not initialized, please call init() method first.");
             throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
 
-        // req.setShouldCache(false);
-        req.setRetryPolicy(new DefaultRetryPolicy(DEFAULT_TIMEOUT_MS,
+        req.setRetryPolicy(new DefaultRetryPolicy(mRequestTimeout,
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
-        // set the default tag if tag is empty
-        if (!TextUtils.isEmpty(tag)) {
-            req.setTag(tag);
-        } else {
-            req.setTag(DEFAULT_REQUEST_TAG);
-        }
-
-        if (req.getMethod() == Request.Method.PATCH) {
-            mRequestQueueForPatchRequests.add(req);
-        } else {
-            mRequestQueue.add(req);
-        }
+        req.setTag(mRequestTag);
+        mRequestQueue.add(req);
+        log("Request added to queue");
     }
 
     /**
@@ -152,7 +131,7 @@ public class ZctNetwork {
     public void cancelRequests(final String tag) throws IllegalStateException {
         dismissProgressDialog();
 
-        if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
+        if (mRequestQueue == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
 
@@ -165,17 +144,6 @@ public class ZctNetwork {
                 return false;
             }
         });
-
-        mRequestQueueForPatchRequests.cancelAll(new RequestQueue.RequestFilter() {
-            @Override
-            public boolean apply(Request<?> request) {
-                if (((String) request.getTag()).equals(tag)) {
-                    return true;
-                }
-                return false;
-            }
-        });
-
     }
 
     /**
@@ -186,7 +154,7 @@ public class ZctNetwork {
     public void cancelAllRequests() throws IllegalStateException {
         dismissProgressDialog();
 
-        if (mRequestQueue == null || mRequestQueueForPatchRequests == null) {
+        if (mRequestQueue == null) {
             throw new IllegalStateException("Object not initialized, please call init() method first.");
         }
         mRequestQueue.cancelAll(new RequestQueue.RequestFilter() {
@@ -195,38 +163,39 @@ public class ZctNetwork {
                 return true;
             }
         });
-
-        mRequestQueueForPatchRequests.cancelAll(new RequestQueue.RequestFilter() {
-            @Override
-            public boolean apply(Request<?> request) {
-                return true;
-            }
-        });
     }
 
-    public Gson getGson() {
-        return sGson;
-    }
-
-    public void showProgressDialog(Context context) {
-        if (!mShowDialog) {
+    protected void showProgressDialog(Context context) {
+        if (!mDialogEnabled) {
             return;
         }
 
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
+            log("Dialog already shown");
             return;
         }
 
-        if (TextUtils.isEmpty(mDialogMsg)) {
-            mDialogMsg = "Loading. Please wait...";
-        }
-
         mProgressDialog = ProgressDialog.show(context, "", mDialogMsg, true);
+        mCurTime = System.currentTimeMillis();
+        log("Dialog shown");
     }
 
-    public void dismissProgressDialog() {
-        if (mShowDialog && mProgressDialog != null && mProgressDialog.isShowing()) {
-            mProgressDialog.dismiss();
+    protected void dismissProgressDialog() {
+        if (mDialogEnabled && mProgressDialog != null && mProgressDialog.isShowing()) {
+            final Long timeDiff = System.currentTimeMillis() - mCurTime;
+            if (timeDiff < MIN_DIALOG_TIME) {
+                mUiHelper.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mProgressDialog.dismiss();
+                        log("Dialog dismissed with delay: " + (MIN_DIALOG_TIME - timeDiff));
+                    }
+                }, MIN_DIALOG_TIME - timeDiff);
+
+            } else {
+                mProgressDialog.dismiss();
+                log("Dialog dismissed");
+            }
         }
     }
 
@@ -237,5 +206,88 @@ public class ZctNetwork {
         NETWORK_ERROR,
         PARSE_ERROR,
         UNKNOWN_ERROR
+    }
+
+    /**
+     * Fluent API for creating {@link ZctNetwork} instances.
+     */
+    public static class Builder {
+        private static Boolean DEFAULT_LOGGING = false;
+        private static Boolean DEFAULT_DIALOG_ENABLED = true;
+        private static String DEFAULT_DIALOG_MSG = "Loading, please wait..";
+
+        private Context context;
+        private String requestTag;
+        private String dialogMsg;
+        private Boolean loggingEnabled;
+        private Boolean dialogEnabled;
+        private Integer requestTimeout;
+
+        /**
+         * Start building a new {@link ZctNetwork} instance.
+         */
+        public Builder(Context context) {
+            if (context == null) {
+                throw new IllegalArgumentException("Context must not be null.");
+            }
+            this.context = context;
+        }
+
+        public Builder defaultTimeout(Integer timeout) {
+            this.requestTimeout = timeout;
+            return this;
+        }
+
+        public Builder defaultRequestTag(String tag) {
+            this.requestTag = tag;
+            return this;
+        }
+
+        public Builder defaultDialogEnable(Boolean enabled) {
+            this.dialogEnabled = enabled;
+            return this;
+        }
+
+        public Builder defaultDialogMsg(String msg) {
+            this.dialogMsg = msg;
+            return this;
+        }
+
+        /**
+         * Toggle whether debug logging is enabled.
+         */
+        public Builder defaultLoggingEnabled(Boolean enabled) {
+            this.loggingEnabled = enabled;
+            return this;
+        }
+
+        /**
+         * Create the {@link ZctNetwork} instance.
+         */
+        public ZctNetwork build() {
+
+            if (requestTimeout == null) {
+                requestTimeout = DefaultRetryPolicy.DEFAULT_TIMEOUT_MS;
+            }
+
+            if (requestTag == null) {
+                requestTag = DEFAULT_TAG;
+            }
+
+            if (dialogEnabled == null) {
+                dialogEnabled = DEFAULT_DIALOG_ENABLED;
+            }
+
+            if (dialogMsg == null) {
+                dialogMsg = DEFAULT_DIALOG_MSG;
+            }
+
+            if (loggingEnabled == null) {
+                loggingEnabled = DEFAULT_LOGGING;
+            }
+
+            sInstance = new ZctNetwork(this);
+            return sInstance;
+        }
     }
 }

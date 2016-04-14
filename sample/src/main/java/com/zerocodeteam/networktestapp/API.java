@@ -3,17 +3,15 @@ package com.zerocodeteam.networktestapp;
 import android.content.Context;
 import android.util.Log;
 
-import com.android.volley.Request;
-import com.zerocodeteam.network.ZctNetwork;
-import com.zerocodeteam.network.request.StringRequest;
-import com.zerocodeteam.network.response.ResponseListener;
+import com.zerocodeteam.network.ResponseListener;
+import com.zerocodeteam.network.StringRequest;
 
 
 /**
  * Created by ZeroCodeTeam on 8/21/2015.
  */
 public class API {
-    
+
     //API urls
     private static final String API_BASE_URL = "http://echo.jsontest.com";
     private static final String API_PING_SERVER = "/key/value/one/two";
@@ -27,9 +25,10 @@ public class API {
     public static void echoCall(ResponseListener<String> listener, Context context) {
 
         // Perform request
-        StringRequest request = new StringRequest(Request.Method.POST, API_BASE_URL + API_PING_SERVER, listener, null, null);
+//        GsonRequest<Example> request = new GsonRequest.Builder(API_BASE_URL + API_PING_SERVER).responseClazz(Example.class).responseListener(listener).method(Request.Method.GET).build();
+        StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).responseListener(listener).build();
         try {
-            ZctNetwork.getInstance().sendRequest(request, context);
+            NetworkTestApp.getNetworkInstance().with(context).executeRequest(request, false);
         } catch (IllegalStateException ise) {
             Log.e(LOG, ise.toString());
         }
