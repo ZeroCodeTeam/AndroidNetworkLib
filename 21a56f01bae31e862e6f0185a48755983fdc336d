@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "baa041b7_835fca71",
+        "filename": "network/src/main/java/com/zerocodeteam/network/ZctNetwork.java",
+        "patchSetId": 2
+      },
+      "lineNbr": 105,
+      "author": {
+        "id": 1006975
+      },
+      "writtenOn": "2016-05-08T09:52:52Z",
+      "side": 1,
+      "message": "should be renamed to isSilent",
+      "range": {
+        "startLine": 105,
+        "startChar": 59,
+        "endLine": 105,
+        "endChar": 65
+      },
+      "revId": "21a56f01bae31e862e6f0185a48755983fdc336d",
+      "serverId": "d5d70762-12d0-45a1-890d-524b12d3f735",
+      "unresolved": false
+    }
+  ]
+}
