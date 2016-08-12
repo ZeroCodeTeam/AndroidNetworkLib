@@ -35,7 +35,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
         super(method, url, null);
         this.mListener = listener;
         this.mClass = clazz;
-        this.mBodyContent = ZctNetwork.getUtils().getGsonInstance().toJson(bodyContent);
+        this.mBodyContent = ZctNetwork.getUtils().getGson().toJson(bodyContent);
         this.mCookie = cookie;
         this.mRequestHeaders = getDefaultRequestHeaders();
         this.mBodyContentType = getDefaultBodyContentType();
@@ -125,7 +125,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
                         HttpHeaderParser.parseCacheHeaders(response));
             } else {
                 return Response.success(
-                        ZctNetwork.getUtils().getGsonInstance().fromJson(json, mClass),
+                        ZctNetwork.getUtils().getGson().fromJson(json, mClass),
                         HttpHeaderParser.parseCacheHeaders(response));
             }
 

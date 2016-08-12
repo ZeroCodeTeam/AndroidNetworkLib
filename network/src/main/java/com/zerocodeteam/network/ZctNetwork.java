@@ -46,7 +46,7 @@ public class ZctNetwork {
         this.mMinDialogTime = builder.minDialogTime;
         this.mRequestQueue = Volley.newRequestQueue(builder.context.getApplicationContext());
         this.mUiHelper = new Handler();
-        mLoggingEnabled = builder.loggingEnabled;
+        ZctNetwork.mLoggingEnabled = builder.loggingEnabled;
         log(ZctNetwork.class.getSimpleName() + " object created");
     }
 
@@ -111,7 +111,17 @@ public class ZctNetwork {
      */
     public <T> void executeRequest(Request<T> req) throws IllegalStateException {
         executeRequest(req, false);
+    }
 
+    /**
+     * Add new request to request queue and start fetching from network, without showing loading dialog.
+     *
+     * @param req - Network request that should be executed.
+     * @param <T> - Generic request object.
+     * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
+     */
+    public <T> void executeSilentRequest(Request<T> req) throws IllegalStateException {
+        executeRequest(req, true);
     }
 
     /**
@@ -121,7 +131,7 @@ public class ZctNetwork {
      * @param <T> - Generic request object.
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
-    public <T> void executeRequest(Request<T> req, Boolean silent) throws IllegalStateException {
+    private <T> void executeRequest(Request<T> req, Boolean silent) throws IllegalStateException {
 
         if (!silent && mDialogEnabled) {
             showProgressDialog(mContext);
@@ -244,7 +254,7 @@ public class ZctNetwork {
     public static class Builder {
         private static Boolean DEFAULT_LOGGING = false;
         private static Boolean DEFAULT_DIALOG_ENABLED = true;
-        private static String DEFAULT_DIALOG_MSG = "Loading, please wait..";
+        private static String DEFAULT_DIALOG_MSG = "Loading. Please wait..";
         private static Integer DEFAULT_DIALOG_SHOWING_TIME = 500;
 
         private Context context;

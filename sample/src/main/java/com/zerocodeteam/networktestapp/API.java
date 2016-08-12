@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.zerocodeteam.network.ResponseListener;
 import com.zerocodeteam.network.StringRequest;
+import com.zerocodeteam.network.ZctNetwork;
 
 
 /**
@@ -28,7 +29,7 @@ public class API {
 //        GsonRequest<Example> request = new GsonRequest.Builder(API_BASE_URL + API_PING_SERVER).responseClazz(Example.class).responseListener(listener).method(Request.Method.GET).build();
         StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).cookie("This is cookie").responseListener(listener).build();
         try {
-            App.getNetworkInstance().with(context).executeRequest(request, false);
+            ZctNetwork.with(context).executeRequest(request);
         } catch (IllegalStateException ise) {
             Log.e(LOG, ise.toString());
         }

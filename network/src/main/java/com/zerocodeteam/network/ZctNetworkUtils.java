@@ -11,7 +11,7 @@ import com.google.gson.Gson;
  */
 public class ZctNetworkUtils {
 
-    private static Gson sGson;
+    private Gson sGson;
 
     public ZctNetworkUtils() {
         sGson = new Gson();
@@ -29,7 +29,7 @@ public class ZctNetworkUtils {
         return netInfo != null && netInfo.isConnected();
     }
 
-    public Gson getGsonInstance() {
+    public Gson getGson() {
         return this.sGson;
     }
 }
