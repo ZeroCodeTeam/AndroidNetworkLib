@@ -16,6 +16,7 @@ public class GsonRequest<T> extends NetworkRequest<T> {
      */
     public static class Builder<T> {
         private Integer DEFAULT_METHOD = Method.GET;
+        private Class DEFAULT_CLASS = Object.class;
 
         private String url;
         private Class<T> clazz;
@@ -69,8 +70,9 @@ public class GsonRequest<T> extends NetworkRequest<T> {
             if (method == null) {
                 method = DEFAULT_METHOD;
             }
+
             if (clazz == null) {
-                ZctNetwork.log("member <responseClazz> is null!");
+                clazz = DEFAULT_CLASS;
             }
 
             return new GsonRequest(this);

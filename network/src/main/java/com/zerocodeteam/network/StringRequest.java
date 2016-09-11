@@ -9,7 +9,6 @@ public class StringRequest extends NetworkRequest<String> {
 
     private StringRequest(Builder builder) {
         super(builder.method, builder.url, builder.responseListener, String.class, builder.requestData, builder.cookie);
-        ZctNetwork.log(StringRequest.class.getSimpleName() + " object created");
     }
 
     /**

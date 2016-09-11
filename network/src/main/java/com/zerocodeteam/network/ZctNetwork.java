@@ -9,6 +9,7 @@ import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.Volley;
+import com.google.gson.Gson;
 
 
 /**
@@ -16,26 +17,28 @@ import com.android.volley.toolbox.Volley;
  */
 public class ZctNetwork {
 
-    public static final String DEFAULT_TAG = ZctNetwork.class.getSimpleName();
-    private static volatile ZctNetwork sInstance;
-    private static volatile ZctNetworkUtils sUtilsInstance;
+    private static final String DEFAULT_TAG = ZctNetwork.class.getSimpleName();
     private static Boolean mLoggingEnabled;
+
+    /**
+     * Singleton objects
+     */
+    private static ZctNetwork sInstance = null;
+    private static Gson sGson;
 
     /**
      * Queue of network requests
      */
-    private RequestQueue mRequestQueue;
     private Context mContext;
     private Integer mRequestTimeout;
     private String mRequestTag;
     private Boolean mDialogEnabled;
     private String mDialogMsg;
-    private ProgressDialog mProgressDialog;
     private Integer mMinDialogTime;
-
-    private Long mCurTime;
+    private RequestQueue mRequestQueue;
     private Handler mUiHelper;
-
+    private ProgressDialog mProgressDialog;
+    private Long mCurTime;
 
     private ZctNetwork(Builder builder) {
         this.mContext = builder.context;
@@ -44,13 +47,23 @@ public class ZctNetwork {
         this.mDialogEnabled = builder.dialogEnabled;
         this.mDialogMsg = builder.dialogMsg;
         this.mMinDialogTime = builder.minDialogTime;
+        this.mLoggingEnabled = builder.loggingEnabled;
         this.mRequestQueue = Volley.newRequestQueue(builder.context.getApplicationContext());
         this.mUiHelper = new Handler();
-        ZctNetwork.mLoggingEnabled = builder.loggingEnabled;
-        log(ZctNetwork.class.getSimpleName() + " object created");
+
+        ZctNetwork.log(ZctNetwork.class.getSimpleName() + " object created");
     }
 
     /**
+     * Default values for ZctNetwork object:
+     *
+     * timeout:             2500ms
+     * dialog min time:     500ms
+     * request tag:         "ZctNetwork"
+     * dialog enabled:      true
+     * logging enabled:     false
+     * default dialog msg:  "Loading. Please wait."
+     *
      * @param context - Associated context to this instance.
      * @return - Instance of ZctNetwork object.
      */
@@ -62,26 +75,10 @@ public class ZctNetwork {
                 }
             }
         } else {
-            log("New context associated");
+            ZctNetwork.log("New context associated");
             sInstance.mContext = context;
         }
         return sInstance;
-    }
-
-    /**
-     * Network helpers.
-     *
-     * @return - Singleton instance of ZctNetworkUtils.
-     */
-    public static ZctNetworkUtils getUtils() {
-        if (sUtilsInstance == null) {
-            synchronized (ZctNetworkUtils.class) {
-                if (sUtilsInstance == null) {
-                    sUtilsInstance = new ZctNetworkUtils();
-                }
-            }
-        }
-        return sUtilsInstance;
     }
 
     /**
@@ -97,9 +94,45 @@ public class ZctNetwork {
      * Log all network lib activities if it is enabled by user.
      */
     protected static void log(String msg) {
-        if (mLoggingEnabled) {
+        if (ZctNetwork.mLoggingEnabled) {
             Log.e(DEFAULT_TAG, msg);
         }
+    }
+
+    /**
+     * Obtain singleton GSON instance
+     *
+     * @return GSON instance
+     */
+    public static Gson getGsonInstance() {
+        if (sGson == null) {
+            sGson = new Gson();
+        }
+        return sGson;
+    }
+
+    /**
+     * Checks if there is network connectivity
+     *
+     * @return TRUE - connected, FALSE - not
+     */
+    public static NetworkType isDeviceOnline(Context context) {
+
+        NetworkType ret = NetworkType.NO_NETWORK;
+
+        if (Connectivity.isConnectedWifi(context)) {
+            ret = NetworkType.WIFI;
+        }
+
+        if (Connectivity.isConnectedMobile(context)) {
+            if (ret != NetworkType.NO_NETWORK) {
+                ret = NetworkType.WIFI_AND_MOBILE;
+            } else {
+                ret = NetworkType.MOBILE;
+            }
+        }
+
+        return ret;
     }
 
     /**
@@ -109,8 +142,8 @@ public class ZctNetwork {
      * @param <T> - Generic request object.
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
-    public <T> void executeRequest(Request<T> req) throws IllegalStateException {
-        executeRequest(req, false);
+    public <T> void sendRequest(NetworkRequest<T> req) throws IllegalStateException {
+        sendRequest(req, false);
     }
 
     /**
@@ -120,8 +153,8 @@ public class ZctNetwork {
      * @param <T> - Generic request object.
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
-    public <T> void executeSilentRequest(Request<T> req) throws IllegalStateException {
-        executeRequest(req, true);
+    public <T> void sendSilentRequest(NetworkRequest<T> req) throws IllegalStateException {
+        sendRequest(req, true);
     }
 
     /**
@@ -131,14 +164,20 @@ public class ZctNetwork {
      * @param <T> - Generic request object.
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
-    private <T> void executeRequest(Request<T> req, Boolean silent) throws IllegalStateException {
+    private <T> void sendRequest(NetworkRequest<T> req, Boolean silent) throws IllegalStateException {
+
+        String logRequest = "";
+        if (req == null) {
+            ZctNetwork.log("Received request is null");
+            return;
+        }
 
         if (!silent && mDialogEnabled) {
             showProgressDialog(mContext);
         }
 
         if (mRequestQueue == null) {
-            log("Object not initialized, please review your code.");
+            ZctNetwork.log("Object not initialized, please review your code.");
             throw new IllegalStateException("Object not initialized, please review your code.");
         }
 
@@ -146,22 +185,30 @@ public class ZctNetwork {
                 DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
+
+        if (req instanceof StringRequest) {
+            logRequest = StringRequest.class.getSimpleName();
+        } else if (req instanceof GsonRequest) {
+            logRequest = GsonRequest.class.getSimpleName();
+        }
+        ZctNetwork.log(logRequest + "\n" + req.toString());
+
         req.setTag(mRequestTag);
         mRequestQueue.add(req);
-        log("Request added to queue");
+        ZctNetwork.log("Request added to queue");
     }
 
     /**
-     * Cancel network request with specific tag.
+     * Cancel network requests with specific tag.
      *
      * @param tag - Tag that uniquely identify network request.
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
-    public void cancelRequests(final String tag) throws IllegalStateException {
+    public void cancelRequestsByTag(final String tag) throws IllegalStateException {
         dismissProgressDialog();
 
         if (mRequestQueue == null) {
-            log("Object not initialized, please review your code.");
+            ZctNetwork.log("Object not initialized, please review your code.");
             throw new IllegalStateException("Object not initialized, please review your code.");
         }
 
@@ -185,7 +232,7 @@ public class ZctNetwork {
         dismissProgressDialog();
 
         if (mRequestQueue == null) {
-            log("Object not initialized, please review your code.");
+            ZctNetwork.log("Object not initialized, please review your code.");
             throw new IllegalStateException("Object not initialized, please review your code.");
         }
 
@@ -208,13 +255,14 @@ public class ZctNetwork {
         }
 
         if (mProgressDialog != null && mProgressDialog.isShowing()) {
-            log("Dialog already shown");
+            ZctNetwork.log("Dialog already shown");
+            mCurTime = System.currentTimeMillis();
             return;
         }
 
         mProgressDialog = ProgressDialog.show(context, "", mDialogMsg, true);
         mCurTime = System.currentTimeMillis();
-        log("Dialog shown");
+        ZctNetwork.log("Dialog shown");
     }
 
     /**
@@ -227,25 +275,63 @@ public class ZctNetwork {
                 mUiHelper.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        mProgressDialog.dismiss();
-                        log("Dialog dismissed with delay: " + (mMinDialogTime - timeDiff));
+                        // It could happen that few callbacks are called in same time, so we need to ignore dialog hiding if ti already hidden.
+                        if( mProgressDialog.isShowing() ) {
+                            mProgressDialog.dismiss();
+                            ZctNetwork.log("Dialog dismissed with delay: " + (mMinDialogTime - timeDiff));
+                        }
                     }
                 }, mMinDialogTime - timeDiff);
 
             } else {
                 mProgressDialog.dismiss();
-                log("Dialog dismissed");
+                ZctNetwork.log("Dialog dismissed");
             }
         }
     }
 
     public enum ErrorType {
-        TIMEOUT,
-        AUTH_FAILURE,
-        SERVER_ERROR,
-        NETWORK_ERROR,
-        PARSE_ERROR,
-        UNKNOWN_ERROR
+        TIMEOUT("TIMEOUT"),
+        AUTH_FAILURE("AUTH_FAILURE"),
+        SERVER_ERROR("SERVER_ERROR"),
+        NETWORK_ERROR("NETWORK_ERROR"),
+        PARSE_ERROR("PARSE_ERROR"),
+        UNKNOWN_ERROR("UNKNOWN_ERROR");
+
+        private final String name;
+
+        private ErrorType(String s) {
+            name = s;
+        }
+
+        public boolean equals(String otherName) {
+            return (otherName == null) ? false : name.equals(otherName);
+        }
+
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    public enum NetworkType {
+        NO_NETWORK("NO NETWORK"),
+        WIFI("WIFI"),
+        MOBILE("MOBILE"),
+        WIFI_AND_MOBILE("WIFI_AND_MOBILE");
+
+        private final String name;
+
+        private NetworkType(String s) {
+            name = s;
+        }
+
+        public boolean equals(String otherName) {
+            return (otherName == null) ? false : name.equals(otherName);
+        }
+
+        public String toString() {
+            return this.name;
+        }
     }
 
     /**
@@ -254,16 +340,16 @@ public class ZctNetwork {
     public static class Builder {
         private static Boolean DEFAULT_LOGGING = false;
         private static Boolean DEFAULT_DIALOG_ENABLED = true;
-        private static String DEFAULT_DIALOG_MSG = "Loading. Please wait..";
+        private static String DEFAULT_DIALOG_MSG = "Loading. Please wait.";
         private static Integer DEFAULT_DIALOG_SHOWING_TIME = 500;
 
-        private Context context;
-        private String requestTag;
-        private String dialogMsg;
-        private Boolean loggingEnabled;
-        private Boolean dialogEnabled;
-        private Integer requestTimeout;
-        private Integer minDialogTime;
+        private Context context = null;
+        private String requestTag = null;
+        private String dialogMsg = null;
+        private Boolean loggingEnabled = null;
+        private Boolean dialogEnabled = null;
+        private Integer requestTimeout = null;
+        private Integer minDialogTime = null;
 
         /**
          * Start building a new {@link ZctNetwork} instance.

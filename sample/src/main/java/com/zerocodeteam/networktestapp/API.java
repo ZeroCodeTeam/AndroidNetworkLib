@@ -3,6 +3,7 @@ package com.zerocodeteam.networktestapp;
 import android.content.Context;
 import android.util.Log;
 
+import com.zerocodeteam.network.GsonRequest;
 import com.zerocodeteam.network.ResponseListener;
 import com.zerocodeteam.network.StringRequest;
 import com.zerocodeteam.network.ZctNetwork;
@@ -23,17 +24,32 @@ public class API {
      *
      * @param listener - Response listener
      */
-    public static void echoCall(ResponseListener<String> listener, Context context) {
+    public static void echoCallString(ResponseListener listener, Context context) {
 
         // Perform request
-//        GsonRequest<Example> request = new GsonRequest.Builder(API_BASE_URL + API_PING_SERVER).responseClazz(Example.class).responseListener(listener).method(Request.Method.GET).build();
-        StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).cookie("This is cookie").responseListener(listener).build();
+        StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).cookie("Dummy cookie").responseListener(listener).build();
         try {
-            ZctNetwork.with(context).executeRequest(request);
+            ZctNetwork.with(context).sendRequest(request);
         } catch (IllegalStateException ise) {
             Log.e(LOG, ise.toString());
         }
     }
 
+    /**
+     * Test network call
+     *
+     * @param listener - Response listener
+     */
+    public static void echoCallGson(ResponseListener<Example> listener, Context context) {
+
+        // Perform request
+//        StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).cookie("Dummy cookie").responseListener(listener).build();
+        GsonRequest request = new GsonRequest.Builder(API_BASE_URL + API_PING_SERVER).responseClazz(Example.class).cookie("Dummy cookie").responseListener(listener).build();
+        try {
+            ZctNetwork.with(context).sendRequest(request);
+        } catch (IllegalStateException ise) {
+            Log.e(LOG, ise.toString());
+        }
+    }
 
 }

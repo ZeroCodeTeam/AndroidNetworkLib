@@ -35,22 +35,22 @@ public abstract class NetworkRequest<T> extends Request<T> {
         super(method, url, null);
         this.mListener = listener;
         this.mClass = clazz;
-        this.mBodyContent = ZctNetwork.getUtils().getGson().toJson(bodyContent);
+        this.mBodyContent = ZctNetwork.getGsonInstance().toJson(bodyContent);
         this.mCookie = cookie;
         this.mRequestHeaders = getDefaultRequestHeaders();
         this.mBodyContentType = getDefaultBodyContentType();
+    }
 
-        ZctNetwork.log("HTTP method: " + getMethodName(method));
-        ZctNetwork.log("URL: " + url);
-        ZctNetwork.log("Body content: " + this.mBodyContent);
-        ZctNetwork.log("Cookie: " + this.mCookie);
+    @Override
+    public String toString() {
+        String ret = "HTTP method: " + getMethodName(this.getMethod()) + "\nURL: " + this.getUrl() + "\nBody content: " + this.mBodyContent + "\nCookie: " + this.mCookie;
+        return ret;
     }
 
     @Override
     protected void deliverResponse(T response) {
         if (mListener != null) {
             mListener.onResponseSuccess(response, mResponseHeaders, mCookie);
-            ZctNetwork.getInstance().dismissProgressDialog();
         } else {
             ZctNetwork.log("Response listener is null");
         }
@@ -125,7 +125,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
                         HttpHeaderParser.parseCacheHeaders(response));
             } else {
                 return Response.success(
-                        ZctNetwork.getUtils().getGson().fromJson(json, mClass),
+                        ZctNetwork.getGsonInstance().fromJson(json, mClass),
                         HttpHeaderParser.parseCacheHeaders(response));
             }
 
