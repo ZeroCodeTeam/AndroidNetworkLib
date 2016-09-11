@@ -1,6 +1,7 @@
 package com.zerocodeteam.networktestapp;
 
 import android.app.Application;
+import android.util.Log;
 
 import com.zerocodeteam.network.ZctNetwork;
 
@@ -15,8 +16,9 @@ public class App extends Application {
     public void onCreate() {
         super.onCreate();
 
-        // Init network module
-        // TODO Rework this instance
-        new ZctNetwork.Builder(this).defaultLoggingEnabled(BuildConfig.DEBUG).defaultMinDialogTime(DEFAULT_DIALOG_TIME).build();
+        // Reconfigure default ZctNetwork settings
+        ZctNetwork zct = new ZctNetwork.Builder(this).defaultLoggingEnabled(BuildConfig.DEBUG).defaultMinDialogTime(DEFAULT_DIALOG_TIME).build();
+
+        Log.e(App.class.getSimpleName(), "Network connection type: " + ZctNetwork.isDeviceOnline(getApplicationContext()));
     }
 }

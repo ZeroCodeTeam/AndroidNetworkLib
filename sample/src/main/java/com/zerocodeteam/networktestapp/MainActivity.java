@@ -27,11 +27,12 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mTextView = (TextView) findViewById(R.id.logMsg);
 
-        if (!ZctNetwork.getUtils().isDeviceOnline(this.getApplicationContext())) {
+        if (ZctNetwork.isDeviceOnline(this.getApplicationContext()).equals(ZctNetwork.NetworkType.NO_NETWORK)) {
             Toast.makeText(getApplicationContext(), "DEVICE OFFLINE", Toast.LENGTH_LONG).show();
         }
 
@@ -40,36 +41,31 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(final View view) {
 
-                API.echoCall(new ResponseListener<String>() {
+                // Send string request
+                API.echoCallString(new ResponseListener<String>() {
 
                     @Override
                     public void onResponseSuccess(String responseObject, Map<String, String> responseHeaders, Object cookie) {
-                        mTextView.append("\nS: " + responseObject.toString());
+                        mTextView.append("\nS: " + responseObject);
                     }
 
                     @Override
                     public void onErrorResponse(VolleyError error, ZctNetwork.ErrorType type, Map<String, String> responseHeaders, Object cookie) {
-                        /*Snackbar.make(view, error.getMessage(), Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();*/
-                        String errorMsg = "UNKNOWN";
-                        switch (type) {
-                            case TIMEOUT:
-                                errorMsg = "TIMEOUT";
-                                break;
-                            case AUTH_FAILURE:
-                                errorMsg = "AUTH_FAILURE";
-                                break;
-                            case SERVER_ERROR:
-                                errorMsg = "SERVER_ERROR";
-                                break;
-                            case NETWORK_ERROR:
-                                errorMsg = "NETWORK_ERROR";
-                                break;
-                            case PARSE_ERROR:
-                                errorMsg = "PARSE_ERROR";
-                                break;
-                        }
-                        mTextView.append("\nE: [TYPE: " + errorMsg + " code:" + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + ":" + error.getNetworkTimeMs() + "ms] " + error.getMessage());
+                        mTextView.append("\nError response:\ntype: " + type + "\ncode: " + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + "\nduration: " + error.getNetworkTimeMs() + "ms\n" + error.getMessage());
+                    }
+                }, MainActivity.this);
+
+                // Send gson request
+                API.echoCallGson(new ResponseListener<Example>() {
+
+                    @Override
+                    public void onResponseSuccess(Example responseObject, Map<String, String> responseHeaders, Object cookie) {
+                        mTextView.append("\nS: " + responseObject);
+                    }
+
+                    @Override
+                    public void onErrorResponse(VolleyError error, ZctNetwork.ErrorType type, Map<String, String> responseHeaders, Object cookie) {
+                        mTextView.append("\nError response:\ntype: " + type + "\ncode: " + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + "\nduration: " + error.getNetworkTimeMs() + "ms\n" + error.getMessage());
                     }
                 }, MainActivity.this);
             }
