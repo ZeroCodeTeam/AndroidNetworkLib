@@ -13,7 +13,6 @@ import com.android.volley.toolbox.HttpHeaderParser;
 import com.google.gson.JsonSyntaxException;
 
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -21,29 +20,33 @@ import java.util.Map;
  */
 public abstract class NetworkRequest<T> extends Request<T> {
 
-    private static final String DEFAULT_BODY_CONTENT_TYPE = "application/json";
-
-    private ResponseListener<T> mListener;
     private Class<T> mClass;
-    private Map<String, String> mRequestHeaders;
+    private ResponseListener<T> mListener;
     private String mBodyContent;
     private String mBodyContentType;
     private Object mCookie;
+    private Map<String, String> mRequestHeaders;
     private Map<String, String> mResponseHeaders;
 
-    public NetworkRequest(int method, String url, ResponseListener<T> listener, Class<T> clazz, Object bodyContent, Object cookie) {
-        super(method, url, null);
-        this.mListener = listener;
-        this.mClass = clazz;
-        this.mBodyContent = ZctNetwork.getGsonInstance().toJson(bodyContent);
-        this.mCookie = cookie;
-        this.mRequestHeaders = getDefaultRequestHeaders();
-        this.mBodyContentType = getDefaultBodyContentType();
+    public NetworkRequest(ZctRequest.Builder requestObject) {
+        super(requestObject.method, requestObject.url, null);
+        this.mClass = requestObject.clazz;
+        this.mListener = requestObject.responseListener;
+        this.mBodyContent = ZctNetwork.getGsonInstance().toJson(requestObject.bodyContent);
+        this.mBodyContentType = requestObject.bodyContentType;
+        this.mCookie = requestObject.cookie;
+        this.mRequestHeaders = requestObject.headers;
     }
 
     @Override
     public String toString() {
-        String ret = "HTTP method: " + getMethodName(this.getMethod()) + "\nURL: " + this.getUrl() + "\nBody content: " + this.mBodyContent + "\nCookie: " + this.mCookie;
+        String requestHeader = "not set";
+        try {
+            requestHeader = (mRequestHeaders != null ? mRequestHeaders : super.getHeaders()).toString();
+        } catch (AuthFailureError afe) {
+            ZctNetwork.log(afe.toString());
+        }
+        String ret = mClass + "\nHTTP method: " + getMethodName(this.getMethod()) + "\nUrl: " + this.getUrl() + "\nBody content: " + this.mBodyContent + "\nCookie: " + this.mCookie + "\nHeaders: " + requestHeader;
         return ret;
     }
 
@@ -54,7 +57,6 @@ public abstract class NetworkRequest<T> extends Request<T> {
         } else {
             ZctNetwork.log("Response listener is null");
         }
-        ZctNetwork.getInstance().dismissProgressDialog();
     }
 
     @Override
@@ -74,18 +76,16 @@ public abstract class NetworkRequest<T> extends Request<T> {
             mListener.onErrorResponse(error, ZctNetwork.ErrorType.UNKNOWN_ERROR, mResponseHeaders, mCookie);
         }
         ZctNetwork.log("Deliver error: " + error.getMessage());
-        ZctNetwork.getInstance().dismissProgressDialog();
     }
 
     @Override
     public String getBodyContentType() {
-        ZctNetwork.log("Body type: " + mBodyContentType != null ? mBodyContentType : super.getBodyContentType());
+        ZctNetwork.log("Body type: " + (mBodyContentType != null ? mBodyContentType : super.getBodyContentType()));
         return mBodyContentType != null ? mBodyContentType : super.getBodyContentType();
     }
 
     @Override
     public Map<String, String> getHeaders() throws AuthFailureError {
-        ZctNetwork.log("Headers: " + (mRequestHeaders != null ? mRequestHeaders : super.getHeaders()));
         return mRequestHeaders != null ? mRequestHeaders : super.getHeaders();
     }
 
@@ -136,25 +136,6 @@ public abstract class NetworkRequest<T> extends Request<T> {
             ZctNetwork.log("JsonSyntaxException: " + jse);
             return Response.error(new ParseError(response));
         }
-    }
-
-    public Map<String, String> getDefaultRequestHeaders() {
-        HashMap<String, String> requestHeaders = new HashMap<>();
-        requestHeaders.put("Content-Type", "application/json");
-        requestHeaders.put("Accept", "application/json");
-        return requestHeaders;
-    }
-
-    public void setDefaultRequestHeaders(Map<String, String> requestHeaders) {
-        this.mRequestHeaders = requestHeaders;
-    }
-
-    public String getDefaultBodyContentType() {
-        return DEFAULT_BODY_CONTENT_TYPE;
-    }
-
-    public void setDefaultBodyContentType(String bodyContentType) {
-        this.mBodyContentType = bodyContentType;
     }
 
     private String getMethodName(Integer method) {

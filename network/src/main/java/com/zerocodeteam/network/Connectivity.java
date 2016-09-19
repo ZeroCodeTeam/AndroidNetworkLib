@@ -6,7 +6,7 @@ import android.net.NetworkInfo;
 import android.telephony.TelephonyManager;
 
 /**
- * Created by rade on 11/09/16.
+ * Created by ZeroCodeTeam on 11/09/16.
  *
  * Check device's network connectivity and speed
  */

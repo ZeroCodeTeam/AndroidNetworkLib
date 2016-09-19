@@ -3,10 +3,9 @@ package com.zerocodeteam.networktestapp;
 import android.content.Context;
 import android.util.Log;
 
-import com.zerocodeteam.network.GsonRequest;
 import com.zerocodeteam.network.ResponseListener;
-import com.zerocodeteam.network.StringRequest;
 import com.zerocodeteam.network.ZctNetwork;
+import com.zerocodeteam.network.ZctRequest;
 
 
 /**
@@ -27,7 +26,7 @@ public class API {
     public static void echoCallString(ResponseListener listener, Context context) {
 
         // Perform request
-        StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).cookie("Dummy cookie").responseListener(listener).build();
+        ZctRequest request = new ZctRequest.Builder(API_BASE_URL + API_PING_SERVER, listener).cookie("Dummy cookie").build();
         try {
             ZctNetwork.with(context).sendRequest(request);
         } catch (IllegalStateException ise) {
@@ -43,8 +42,7 @@ public class API {
     public static void echoCallGson(ResponseListener<Example> listener, Context context) {
 
         // Perform request
-//        StringRequest request = new StringRequest.Builder(API_BASE_URL + API_PING_SERVER).cookie("Dummy cookie").responseListener(listener).build();
-        GsonRequest request = new GsonRequest.Builder(API_BASE_URL + API_PING_SERVER).responseClazz(Example.class).cookie("Dummy cookie").responseListener(listener).build();
+        ZctRequest request = new ZctRequest.Builder(API_BASE_URL + API_PING_SERVER, Example.class, listener).cookie("Dummy cookie").build();
         try {
             ZctNetwork.with(context).sendRequest(request);
         } catch (IllegalStateException ise) {
