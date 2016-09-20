@@ -27,7 +27,7 @@ public class ZctRequest extends NetworkRequest {
         protected Integer method = -1;
         protected String url;
         protected Class clazz;
-        protected ResponseListener responseListener;
+        protected ZctResponse callback;
         protected Object bodyContent;
         protected String bodyContentType;
         protected Object cookie;
@@ -43,48 +43,24 @@ public class ZctRequest extends NetworkRequest {
             this.url = url;
         }
 
-        /**
-         * Start building a new {@link ZctRequest} instance.
-         */
-        public Builder(String url, ResponseListener responseListener) {
-            if (TextUtils.isEmpty(url)) {
-                throw new IllegalArgumentException("URL must not be empty.");
-            }
-            this.url = url;
-
-            if (responseListener == null) {
-                throw new IllegalArgumentException("Response listener must not be null.");
-            }
-            this.responseListener = responseListener;
-        }
-
-        /**
-         * Start building a new {@link ZctRequest} instance.
-         */
-        public Builder(String url, Class clazz, ResponseListener responseListener) {
-            if (TextUtils.isEmpty(url)) {
-                throw new IllegalArgumentException("Builder must not be empty.");
-            }
-            this.url = url;
-
+        public Builder responseClass(Class clazz) {
             if (clazz == null) {
                 throw new IllegalArgumentException("Class must not be null.");
             }
             this.clazz = clazz;
+            return this;
+        }
 
-            if (responseListener == null) {
-                throw new IllegalArgumentException("Response listener must not be null.");
+        public Builder callback(ZctResponse callback) {
+            if (callback == null) {
+                throw new IllegalArgumentException("Callback must not be null.");
             }
-            this.responseListener = responseListener;
+            this.callback = callback;
+            return this;
         }
 
         public Builder method(Integer method) {
             this.method = method;
-            return this;
-        }
-
-        public Builder responseListener(ResponseListener responseListener) {
-            this.responseListener = responseListener;
             return this;
         }
 

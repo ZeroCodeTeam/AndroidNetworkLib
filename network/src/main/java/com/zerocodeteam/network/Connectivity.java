@@ -10,7 +10,7 @@ import android.telephony.TelephonyManager;
  *
  * Check device's network connectivity and speed
  */
-public class Connectivity {
+class Connectivity {
 
     /**
      * Get the network info

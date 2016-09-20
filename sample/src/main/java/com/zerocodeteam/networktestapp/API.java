@@ -3,9 +3,9 @@ package com.zerocodeteam.networktestapp;
 import android.content.Context;
 import android.util.Log;
 
-import com.zerocodeteam.network.ResponseListener;
 import com.zerocodeteam.network.ZctNetwork;
 import com.zerocodeteam.network.ZctRequest;
+import com.zerocodeteam.network.ZctResponse;
 
 
 /**
@@ -23,10 +23,10 @@ public class API {
      *
      * @param listener - Response listener
      */
-    public static void echoCallString(ResponseListener listener, Context context) {
+    public static void echoCallString(ZctResponse listener, Context context) {
 
         // Perform request
-        ZctRequest request = new ZctRequest.Builder(API_BASE_URL + API_PING_SERVER, listener).cookie("Dummy cookie").build();
+        ZctRequest request = new ZctRequest.Builder(API_BASE_URL + API_PING_SERVER).callback(listener).cookie("Dummy cookie").build();
         try {
             ZctNetwork.with(context).sendRequest(request);
         } catch (IllegalStateException ise) {
@@ -39,10 +39,10 @@ public class API {
      *
      * @param listener - Response listener
      */
-    public static void echoCallGson(ResponseListener<Example> listener, Context context) {
+    public static void echoCallGson(ZctResponse<Example> listener, Context context) {
 
         // Perform request
-        ZctRequest request = new ZctRequest.Builder(API_BASE_URL + API_PING_SERVER, Example.class, listener).cookie("Dummy cookie").build();
+        ZctRequest request = new ZctRequest.Builder(API_BASE_URL + API_PING_SERVER).responseClass(Example.class).callback(listener).cookie("Dummy cookie").build();
         try {
             ZctNetwork.with(context).sendRequest(request);
         } catch (IllegalStateException ise) {

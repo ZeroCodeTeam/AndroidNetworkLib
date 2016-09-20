@@ -41,6 +41,24 @@ public class ZctNetwork {
     }
 
     /**
+     * Get singleton instance of ZctNetwork object.
+     *
+     * @return - Instance of ZctNetwork object.
+     */
+    protected static ZctNetwork getInstance() {
+        return sInstance;
+    }
+
+    /**
+     * Log all network lib activities if it is enabled by user.
+     */
+    protected static void log(String msg) {
+        if (ZctNetwork.mLoggingEnabled) {
+            Log.e(DEFAULT_TAG, msg);
+        }
+    }
+
+    /**
      * Default values for ZctNetwork object:
      * timeout:             2500 ms
      * dialog min time:     0 ms
@@ -60,24 +78,6 @@ public class ZctNetwork {
         }
 
         return sInstance;
-    }
-
-    /**
-     * Get singleton instance of ZctNetwork object.
-     *
-     * @return - Instance of ZctNetwork object.
-     */
-    protected static ZctNetwork getInstance() {
-        return sInstance;
-    }
-
-    /**
-     * Log all network lib activities if it is enabled by user.
-     */
-    protected static void log(String msg) {
-        if (ZctNetwork.mLoggingEnabled) {
-            Log.e(DEFAULT_TAG, msg);
-        }
     }
 
     /**

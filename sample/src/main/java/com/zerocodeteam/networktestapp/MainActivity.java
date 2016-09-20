@@ -11,8 +11,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.VolleyError;
-import com.zerocodeteam.network.ResponseListener;
 import com.zerocodeteam.network.ZctNetwork;
+import com.zerocodeteam.network.ZctResponse;
 
 import java.util.Map;
 
@@ -42,29 +42,29 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(final View view) {
 
                 // Send string request
-                API.echoCallString(new ResponseListener<String>() {
+                API.echoCallString(new ZctResponse<String>() {
 
                     @Override
-                    public void onResponseSuccess(String responseObject, Map<String, String> responseHeaders, Object cookie) {
+                    public void onSuccess(String responseObject, Map<String, String> responseHeaders, Object cookie) {
                         mTextView.append("\nS: " + responseObject);
                     }
 
                     @Override
-                    public void onErrorResponse(VolleyError error, ZctNetwork.ErrorType type, Map<String, String> responseHeaders, Object cookie) {
+                    public void onError(VolleyError error, ZctNetwork.ErrorType type, Map<String, String> responseHeaders, Object cookie) {
                         mTextView.append("\nError response:\ntype: " + type + "\ncode: " + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + "\nduration: " + error.getNetworkTimeMs() + "ms\n" + error.getMessage());
                     }
                 }, MainActivity.this);
 
                 // Send gson request
-                API.echoCallGson(new ResponseListener<Example>() {
+                API.echoCallGson(new ZctResponse<Example>() {
 
                     @Override
-                    public void onResponseSuccess(Example responseObject, Map<String, String> responseHeaders, Object cookie) {
+                    public void onSuccess(Example responseObject, Map<String, String> responseHeaders, Object cookie) {
                         mTextView.append("\nS: " + responseObject);
                     }
 
                     @Override
-                    public void onErrorResponse(VolleyError error, ZctNetwork.ErrorType type, Map<String, String> responseHeaders, Object cookie) {
+                    public void onError(VolleyError error, ZctNetwork.ErrorType type, Map<String, String> responseHeaders, Object cookie) {
                         mTextView.append("\nError response:\ntype: " + type + "\ncode: " + (error.networkResponse != null ? error.networkResponse.statusCode : "0") + "\nduration: " + error.getNetworkTimeMs() + "ms\n" + error.getMessage());
                     }
                 }, MainActivity.this);

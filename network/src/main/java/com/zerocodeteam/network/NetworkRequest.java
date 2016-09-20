@@ -18,10 +18,10 @@ import java.util.Map;
 /**
  * Created by ZeroCodeTeam on 23.7.2015.
  */
-public abstract class NetworkRequest<T> extends Request<T> {
+abstract class NetworkRequest<T> extends Request<T> {
 
     private Class<T> mClass;
-    private ResponseListener<T> mListener;
+    private ZctResponse<T> mListener;
     private String mBodyContent;
     private String mBodyContentType;
     private Object mCookie;
@@ -31,7 +31,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
     public NetworkRequest(ZctRequest.Builder requestObject) {
         super(requestObject.method, requestObject.url, null);
         this.mClass = requestObject.clazz;
-        this.mListener = requestObject.responseListener;
+        this.mListener = requestObject.callback;
         this.mBodyContent = ZctNetwork.getGsonInstance().toJson(requestObject.bodyContent);
         this.mBodyContentType = requestObject.bodyContentType;
         this.mCookie = requestObject.cookie;
@@ -53,7 +53,7 @@ public abstract class NetworkRequest<T> extends Request<T> {
     @Override
     protected void deliverResponse(T response) {
         if (mListener != null) {
-            mListener.onResponseSuccess(response, mResponseHeaders, mCookie);
+            mListener.onSuccess(response, mResponseHeaders, mCookie);
         } else {
             ZctNetwork.log("Response listener is null");
         }
@@ -63,17 +63,17 @@ public abstract class NetworkRequest<T> extends Request<T> {
     public void deliverError(VolleyError error) {
         super.deliverError(error);
         if (error instanceof TimeoutError) {
-            mListener.onErrorResponse(error, ZctNetwork.ErrorType.TIMEOUT, mResponseHeaders, mCookie);
+            mListener.onError(error, ZctNetwork.ErrorType.TIMEOUT, mResponseHeaders, mCookie);
         } else if (error instanceof AuthFailureError) {
-            mListener.onErrorResponse(error, ZctNetwork.ErrorType.AUTH_FAILURE, mResponseHeaders, mCookie);
+            mListener.onError(error, ZctNetwork.ErrorType.AUTH_FAILURE, mResponseHeaders, mCookie);
         } else if (error instanceof ServerError) {
-            mListener.onErrorResponse(error, ZctNetwork.ErrorType.SERVER_ERROR, mResponseHeaders, mCookie);
+            mListener.onError(error, ZctNetwork.ErrorType.SERVER_ERROR, mResponseHeaders, mCookie);
         } else if (error instanceof NetworkError) {
-            mListener.onErrorResponse(error, ZctNetwork.ErrorType.NETWORK_ERROR, mResponseHeaders, mCookie);
+            mListener.onError(error, ZctNetwork.ErrorType.NETWORK_ERROR, mResponseHeaders, mCookie);
         } else if (error instanceof ParseError) {
-            mListener.onErrorResponse(error, ZctNetwork.ErrorType.PARSE_ERROR, mResponseHeaders, mCookie);
+            mListener.onError(error, ZctNetwork.ErrorType.PARSE_ERROR, mResponseHeaders, mCookie);
         } else {
-            mListener.onErrorResponse(error, ZctNetwork.ErrorType.UNKNOWN_ERROR, mResponseHeaders, mCookie);
+            mListener.onError(error, ZctNetwork.ErrorType.UNKNOWN_ERROR, mResponseHeaders, mCookie);
         }
         ZctNetwork.log("Deliver error: " + error.getMessage());
     }
