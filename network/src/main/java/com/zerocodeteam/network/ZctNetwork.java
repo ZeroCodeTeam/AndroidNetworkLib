@@ -1,13 +1,25 @@
 package com.zerocodeteam.network;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.util.Log;
+import android.util.LruCache;
+import android.widget.ImageView;
 
 import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Network;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
-import com.android.volley.toolbox.Volley;
+import com.android.volley.toolbox.BasicNetwork;
+import com.android.volley.toolbox.DiskBasedCache;
+import com.android.volley.toolbox.HttpStack;
+import com.android.volley.toolbox.HurlStack;
+import com.android.volley.toolbox.ImageLoader;
+import com.android.volley.toolbox.ImageLoader.ImageCache;
+import com.android.volley.toolbox.NetworkImageView;
 import com.google.gson.Gson;
+
+import java.io.File;
 
 
 /**
@@ -24,19 +36,48 @@ public class ZctNetwork {
     private static ZctNetwork sInstance = null;
     private static Gson sGson;
 
+
     /**
      * Queue of network requests
      */
     private Integer mRequestTimeout;
     private String mRequestTag;
     private RequestQueue mRequestQueue;
+    private ImageLoader mImageLoader;
+    private LruCache<String, Bitmap> mCache;
+    private ImageCache mImageLoaderCache;
+    private int mErrorImage;
+    private int mDefaultImage;
 
     private ZctNetwork(Builder builder) {
+
+        this.mErrorImage = builder.errorResource;
+        this.mDefaultImage = builder.defaultResource;
         this.mRequestTimeout = builder.requestTimeout;
         this.mRequestTag = builder.requestTag;
         this.mLoggingEnabled = builder.loggingEnabled;
-        this.mRequestQueue = Volley.newRequestQueue(builder.context.getApplicationContext());
 
+        File cacheDir = new File(builder.context.getCacheDir(), builder.cacheDir);
+
+        HttpStack stack = new HurlStack();
+        Network network = new BasicNetwork(stack);
+
+        this.mRequestQueue = new RequestQueue(new DiskBasedCache(cacheDir, builder.cacheSize), network);
+        this.mRequestQueue.start();
+
+        this.mCache = new LruCache<>(builder.maxImageCacheEntries);
+        this.mImageLoaderCache = new ImageCache() {
+            @Override
+            public Bitmap getBitmap(String url) {
+                return mCache.get(url);
+            }
+
+            @Override
+            public void putBitmap(String url, Bitmap bitmap) {
+                mCache.put(url, bitmap);
+            }
+        };
+        this.mImageLoader = new ImageLoader(mRequestQueue, mImageLoaderCache);
         ZctNetwork.log(ZctNetwork.class.getSimpleName() + " object created");
     }
 
@@ -116,6 +157,14 @@ public class ZctNetwork {
         return ret;
     }
 
+    public void loadNetworkImage(String url, NetworkImageView networkImageView) {
+        networkImageView.setImageUrl(url, mImageLoader);
+    }
+
+    public void loadImage(String url, ImageView imageView) {
+        mImageLoader.get(url, ImageLoader.getImageListener(imageView,
+                mDefaultImage, mErrorImage));
+    }
 
     /**
      * Add new request to request queue and start fetching from network.
@@ -240,11 +289,20 @@ public class ZctNetwork {
      */
     public static class Builder {
         private static Boolean DEFAULT_LOGGING = false;
+        private static Integer DEFAULT_MAX_IMAGE_CACHE_SIZE = 30;
+        private static String DEFAULT_CACHE_DIR = "zctNetwork";
+        private static int DEFAULT_NETWORK_CACHE_SIZE = 10 * 1024 * 1024; // 10Mb
 
+        public String cacheDir = null;
+        public int cacheSize = 0;
         private Context context = null;
         private String requestTag = null;
         private Boolean loggingEnabled = null;
+        private Integer maxImageCacheEntries = null;
         private Integer requestTimeout = null;
+        private int defaultResource = 0;
+        private int errorResource = 0;
+
 
         /**
          * Start building a new {@link ZctNetwork} instance.
@@ -290,6 +348,53 @@ public class ZctNetwork {
         }
 
         /**
+         * Configure default max image cache size value.
+         *
+         * @param maxEntries - Maximum number of entries in the cache. For all other caches,
+         *                   this is the maximum sum of the sizes of the entries in this cache.
+         * @return - Instance of Builder object.
+         */
+        public Builder defaultImageCacheEntries(Integer maxEntries) {
+            this.maxImageCacheEntries = maxEntries;
+            return this;
+        }
+
+        /**
+         * Configure default image loader resources.
+         *
+         * @param defaultResource - Loading image is shown while image is loading.
+         * @param errorResource   - Error image is shown if error occurs while loading image.
+         * @return - Instance of Builder object.
+         */
+        public Builder defaultImageLoaderResources(int defaultResource, int errorResource) {
+            this.defaultResource = defaultResource;
+            this.errorResource = errorResource;
+            return this;
+        }
+
+        /**
+         * Configure default cache dir name.
+         *
+         * @param cacheDir - Cache dir name.
+         * @return - Instance of Builder object.
+         */
+        public Builder defaultCacheDir(String cacheDir) {
+            this.cacheDir = cacheDir;
+            return this;
+        }
+
+        /**
+         * Configure cache size for network library.
+         *
+         * @param cacheSize - The maximum size of the cache in bytes.
+         */
+        public Builder defaultCacheSize(int cacheSize) {
+            this.cacheSize = cacheSize;
+            return this;
+        }
+
+
+        /**
          * Create the {@link ZctNetwork} instance.
          */
         public ZctNetwork build() {
@@ -305,9 +410,27 @@ public class ZctNetwork {
             if (loggingEnabled == null) {
                 loggingEnabled = DEFAULT_LOGGING;
             }
+            if (maxImageCacheEntries == null) {
+                maxImageCacheEntries = DEFAULT_MAX_IMAGE_CACHE_SIZE;
+            }
+            if (errorResource == 0) {
+                errorResource = android.R.drawable.ic_dialog_alert;
+            }
+
+            if (defaultResource == 0) {
+                defaultResource = R.drawable.ic_default;
+            }
+            if (cacheDir == null) {
+                cacheDir = DEFAULT_CACHE_DIR;
+            }
+
+            if (cacheSize == 0) {
+                cacheSize = DEFAULT_NETWORK_CACHE_SIZE;
+            }
 
             sInstance = new ZctNetwork(this);
             return sInstance;
         }
+
     }
 }

@@ -7,10 +7,12 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.VolleyError;
+import com.android.volley.toolbox.NetworkImageView;
 import com.zerocodeteam.network.ZctNetwork;
 import com.zerocodeteam.network.ZctResponse;
 
@@ -21,7 +23,13 @@ import java.util.Map;
  */
 public class MainActivity extends AppCompatActivity {
 
+    private final String IMAGE_0_URL = "http://www.wallpapersonview.com/wallpapers/2/animals_small_turtle-0075.jpg";
+    //    private final String IMAGE_1_URL = "http://www.akjsdhjkashdjkh.jpg";
+    private final String IMAGE_1_URL = "http://vineland.pynchonwiki.com/wiki/images/c/cf/Godzilla.jpg";
+
     private TextView mTextView;
+    private NetworkImageView mINetworkImageView;
+    private ImageView mImageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,9 +39,13 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         mTextView = (TextView) findViewById(R.id.logMsg);
-
+        mINetworkImageView = (NetworkImageView) findViewById(R.id.networkImage);
+        mImageView = (ImageView) findViewById(R.id.networkImageWithLoading);
         if (ZctNetwork.isDeviceOnline(this.getApplicationContext()).equals(ZctNetwork.NetworkType.NO_NETWORK)) {
             Toast.makeText(getApplicationContext(), "DEVICE OFFLINE", Toast.LENGTH_LONG).show();
+        } else {
+            ZctNetwork.with(getApplicationContext()).loadNetworkImage(IMAGE_0_URL, mINetworkImageView);
+            ZctNetwork.with(getApplicationContext()).loadImage(IMAGE_1_URL, mImageView);
         }
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
