@@ -2,6 +2,7 @@ package com.zerocodeteam.network;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.net.TrafficStats;
 import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
@@ -18,8 +19,12 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.ImageLoader.ImageCache;
 import com.android.volley.toolbox.NetworkImageView;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
 
 
 /**
@@ -36,7 +41,6 @@ public class ZctNetwork {
     private static ZctNetwork sInstance = null;
     private static Gson sGson;
 
-
     /**
      * Queue of network requests
      */
@@ -48,10 +52,12 @@ public class ZctNetwork {
     private ImageCache mImageLoaderCache;
     private int mErrorImage;
     private int mDefaultImage;
+    private Context mContext;
 
     private ZctNetwork(Builder builder) {
 
         this.mErrorImage = builder.errorResource;
+        this.mContext = builder.context;
         this.mDefaultImage = builder.defaultResource;
         this.mRequestTimeout = builder.requestTimeout;
         this.mRequestTag = builder.requestTag;
@@ -128,25 +134,89 @@ public class ZctNetwork {
      */
     public static Gson getGsonInstance() {
         if (sGson == null) {
-            sGson = new Gson();
+            sGson = new GsonBuilder().setPrettyPrinting().create();
         }
         return sGson;
     }
 
     /**
-     * Checks if there is network connectivity
+     * Determine network traffic based on network type. It returns number of bytes transferred over
+     * specific interface since last boot time.
      *
-     * @return TRUE - connected, FALSE - not
+     * @param statsType - Interested network interface
+     * @return - Number of bytes
      */
-    public static NetworkType isDeviceOnline(Context context) {
+    public Long getNetworkStats(NetworkStats statsType) {
+        Long byteCount = -1L;
+        String WIFI_RX = "/sys/class/net/wlan0/statistics/rx_bytes";
+        String WIFI_TX = "/sys/class/net/wlan0/statistics/tx_bytes";
+        String MOBILE_RX = "/sys/class/net/rmnet0/statistics/rx_bytes";
+        String MOBILE_TX = "/sys/class/net/rmnet0/statistics/tx_bytes";
+        String MOBILE_PPP0_RX = "/sys/class/net/ppp0/statistics/rx_bytes";
+        String MOBILE_PPP0_TX = "/sys/class/net/ppp0/statistics/tx_bytes";
 
+        switch (statsType) {
+            case WIFI_RX:
+                byteCount = readFileValue(WIFI_RX);
+
+                // If fail to obtain values try to read them from wlan0 interface
+                if (byteCount == 0) {
+                    byteCount = TrafficStats.getTotalRxBytes() - this.getNetworkStats(NetworkStats.MOBILE_RX);
+                }
+                break;
+            case WIFI_TX:
+                byteCount = readFileValue(WIFI_TX);
+
+                // If fail to obtain values try to read them from wlan0 interface
+                if (byteCount == 0) {
+                    byteCount = TrafficStats.getTotalTxBytes() - this.getNetworkStats(NetworkStats.MOBILE_TX);
+                }
+                break;
+            case MOBILE_RX:
+                byteCount = TrafficStats.getMobileRxBytes();
+
+                // If fail to obtain values try to read them from rmnet0 interface
+                if (byteCount == 0) {
+                    byteCount = readFileValue(MOBILE_RX);
+                }
+
+                // If fail to obtain values try to read them from ppp0 interface
+                if (byteCount == 0) {
+                    byteCount = readFileValue(MOBILE_PPP0_RX);
+                }
+                break;
+            case MOBILE_TX:
+                byteCount = TrafficStats.getMobileTxBytes();
+
+                // If fail to obtain values try to read them from rmnet0 interface
+                if (byteCount == 0) {
+                    byteCount = readFileValue(MOBILE_TX);
+                }
+
+                // If fail to obtain values try to read them from ppp0 interface
+                if (byteCount == 0) {
+                    byteCount = readFileValue(MOBILE_PPP0_TX);
+                }
+                break;
+        }
+        this.log("getNetworkStats: [TYPE : " + statsType + "] [BYTES COUNT: " + byteCount + "]");
+        return byteCount;
+    }
+
+    /**
+     * Checks if there is network connectivity. Response is status that says
+     * if there is network connection and which type.
+     *
+     * @return NetworkType -  network connection type
+     */
+    public NetworkType isDeviceOnline() {
         NetworkType ret = NetworkType.NO_NETWORK;
 
-        if (Connectivity.isConnectedWifi(context)) {
+        if (Connectivity.isConnectedWifi(mContext)) {
             ret = NetworkType.WIFI;
         }
 
-        if (Connectivity.isConnectedMobile(context)) {
+        if (Connectivity.isConnectedMobile(mContext)) {
             if (ret != NetworkType.NO_NETWORK) {
                 ret = NetworkType.WIFI_AND_MOBILE;
             } else {
@@ -174,7 +244,6 @@ public class ZctNetwork {
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
     public <T> void sendRequest(NetworkRequest<T> req) throws IllegalStateException {
-
         if (req == null) {
             ZctNetwork.log("Received request is null");
             return;
@@ -240,6 +309,30 @@ public class ZctNetwork {
         });
     }
 
+    private Long readFileValue(String fileName) {
+        File file = new File(fileName);
+        BufferedReader br = null;
+        Long bytes = 0L;
+        try {
+            br = new BufferedReader(new FileReader(file));
+            String line = "";
+            line = br.readLine();
+            bytes = Long.parseLong(line);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0L;
+
+        } finally {
+            if (br != null)
+                try {
+                    br.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+        }
+        return bytes;
+    }
+
     public enum ErrorType {
         TIMEOUT("TIMEOUT"),
         AUTH_FAILURE("AUTH_FAILURE"),
@@ -272,6 +365,27 @@ public class ZctNetwork {
         private final String name;
 
         private NetworkType(String s) {
+            name = s;
+        }
+
+        public boolean equals(String otherName) {
+            return (otherName == null) ? false : name.equals(otherName);
+        }
+
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    public enum NetworkStats {
+        WIFI_RX("WIFI_RX"),
+        WIFI_TX("WIFI_TX"),
+        MOBILE_RX("MOBILE_RX"),
+        MOBILE_TX("MOBILE_TX");
+
+        private final String name;
+
+        private NetworkStats(String s) {
             name = s;
         }
 
@@ -431,6 +545,5 @@ public class ZctNetwork {
             sInstance = new ZctNetwork(this);
             return sInstance;
         }
-
     }
 }

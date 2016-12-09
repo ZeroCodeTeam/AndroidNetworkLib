@@ -17,6 +17,6 @@ public class App extends Application {
         // Reconfigure default ZctNetwork settings
         ZctNetwork zct = new ZctNetwork.Builder(this).defaultLoggingEnabled(BuildConfig.DEBUG).build();
 
-        Log.e(App.class.getSimpleName(), "Network connection type: " + ZctNetwork.isDeviceOnline(getApplicationContext()));
+        Log.e(App.class.getSimpleName(), "Network connection type: " + ZctNetwork.with(getApplicationContext()).isDeviceOnline());
     }
 }
