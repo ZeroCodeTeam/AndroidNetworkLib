@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
         mTextView = (TextView) findViewById(R.id.logMsg);
         mINetworkImageView = (NetworkImageView) findViewById(R.id.networkImage);
         mImageView = (ImageView) findViewById(R.id.networkImageWithLoading);
-        if (ZctNetwork.isDeviceOnline(this.getApplicationContext()).equals(ZctNetwork.NetworkType.NO_NETWORK)) {
+        if (ZctNetwork.with(this.getApplicationContext()).isDeviceOnline().equals(ZctNetwork.NetworkType.NO_NETWORK)) {
             Toast.makeText(getApplicationContext(), "DEVICE OFFLINE", Toast.LENGTH_LONG).show();
         } else {
             ZctNetwork.with(getApplicationContext()).loadNetworkImage(IMAGE_0_URL, mINetworkImageView);
@@ -100,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            mTextView.append("\n Stat: " + ZctNetwork.with(getApplicationContext()).
+                    getNetworkStats(ZctNetwork.NetworkStats.WIFI_TX) + " bytes");
             return true;
         }
 
