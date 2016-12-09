@@ -2,6 +2,7 @@ package com.zerocodeteam.network;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.net.TrafficStats;
 import android.util.Log;
 import android.util.LruCache;
 import android.widget.ImageView;
@@ -18,6 +19,7 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.ImageLoader.ImageCache;
 import com.android.volley.toolbox.NetworkImageView;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.File;
 
@@ -36,7 +38,6 @@ public class ZctNetwork {
     private static ZctNetwork sInstance = null;
     private static Gson sGson;
 
-
     /**
      * Queue of network requests
      */
@@ -48,10 +49,12 @@ public class ZctNetwork {
     private ImageCache mImageLoaderCache;
     private int mErrorImage;
     private int mDefaultImage;
+    private Context mContext;
 
     private ZctNetwork(Builder builder) {
 
         this.mErrorImage = builder.errorResource;
+        this.mContext = builder.context;
         this.mDefaultImage = builder.defaultResource;
         this.mRequestTimeout = builder.requestTimeout;
         this.mRequestTag = builder.requestTag;
@@ -128,25 +131,53 @@ public class ZctNetwork {
      */
     public static Gson getGsonInstance() {
         if (sGson == null) {
-            sGson = new Gson();
+            sGson = new GsonBuilder().setPrettyPrinting().create();
         }
         return sGson;
     }
 
     /**
-     * Checks if there is network connectivity
+     * Determine network traffic based on network type. It returns number of bytes transferred over
+     * specific interface since last boot time.
      *
-     * @return TRUE - connected, FALSE - not
+     * @param statsType - Interested network interface
+     * @return - Number of bytes
      */
-    public static NetworkType isDeviceOnline(Context context) {
+    public Long getNetworkStats(NetworkStats statsType) {
+        Long byteCount = -1L;
 
+        switch (statsType) {
+            case WIFI_RX:
+                byteCount = TrafficStats.getTotalRxBytes() - TrafficStats.getMobileRxBytes();
+                break;
+            case WIFI_TX:
+                byteCount = TrafficStats.getTotalTxBytes() - TrafficStats.getMobileTxBytes();
+                break;
+            case MOBILE_RX:
+                byteCount = TrafficStats.getMobileRxBytes();
+                break;
+            case MOBILE_TX:
+                byteCount = TrafficStats.getMobileTxBytes();
+                break;
+        }
+        this.log("getNetworkStats: [TYPE : " + statsType + "] [BYTES COUNT: " + byteCount + "]");
+        return byteCount;
+    }
+
+    /**
+     * Checks if there is network connectivity. Response is status that says
+     * if there is network connection and which type.
+     *
+     * @return NetworkType -  network connection type
+     */
+    public NetworkType isDeviceOnline() {
         NetworkType ret = NetworkType.NO_NETWORK;
 
-        if (Connectivity.isConnectedWifi(context)) {
+        if (Connectivity.isConnectedWifi(mContext)) {
             ret = NetworkType.WIFI;
         }
 
-        if (Connectivity.isConnectedMobile(context)) {
+        if (Connectivity.isConnectedMobile(mContext)) {
             if (ret != NetworkType.NO_NETWORK) {
                 ret = NetworkType.WIFI_AND_MOBILE;
             } else {
@@ -174,7 +205,6 @@ public class ZctNetwork {
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
     public <T> void sendRequest(NetworkRequest<T> req) throws IllegalStateException {
-
         if (req == null) {
             ZctNetwork.log("Received request is null");
             return;
@@ -272,6 +302,27 @@ public class ZctNetwork {
         private final String name;
 
         private NetworkType(String s) {
+            name = s;
+        }
+
+        public boolean equals(String otherName) {
+            return (otherName == null) ? false : name.equals(otherName);
+        }
+
+        public String toString() {
+            return this.name;
+        }
+    }
+
+    public enum NetworkStats {
+        WIFI_RX("WIFI_RX"),
+        WIFI_TX("WIFI_TX"),
+        MOBILE_RX("MOBILE_RX"),
+        MOBILE_TX("MOBILE_TX");
+
+        private final String name;
+
+        private NetworkStats(String s) {
             name = s;
         }
 
@@ -431,6 +482,5 @@ public class ZctNetwork {
             sInstance = new ZctNetwork(this);
             return sInstance;
         }
-
     }
 }
