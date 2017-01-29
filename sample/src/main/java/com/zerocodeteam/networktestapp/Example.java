@@ -12,10 +12,10 @@ public class Example {
 
     @SerializedName("one")
     @Expose
-    private String one;
+    private String one = "one";
     @SerializedName("key")
     @Expose
-    private String key;
+    private String key = "key";
 
     /**
      * @return The one
@@ -47,6 +47,6 @@ public class Example {
 
     @Override
     public String toString() {
-        return ZctNetwork.getGsonInstance().toJson(this);
+        return App.getNetwork().getGson().toJson(this);
     }
 }

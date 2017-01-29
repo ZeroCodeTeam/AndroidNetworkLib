@@ -1,11 +1,7 @@
 package com.zerocodeteam.network;
 
 import android.content.Context;
-import android.graphics.Bitmap;
-import android.net.TrafficStats;
 import android.util.Log;
-import android.util.LruCache;
-import android.widget.ImageView;
 
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Network;
@@ -15,9 +11,6 @@ import com.android.volley.toolbox.BasicNetwork;
 import com.android.volley.toolbox.DiskBasedCache;
 import com.android.volley.toolbox.HttpStack;
 import com.android.volley.toolbox.HurlStack;
-import com.android.volley.toolbox.ImageLoader;
-import com.android.volley.toolbox.ImageLoader.ImageCache;
-import com.android.volley.toolbox.NetworkImageView;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -32,109 +25,61 @@ import java.io.IOException;
  */
 public class ZctNetwork {
 
-    private static final String DEFAULT_TAG = ZctNetwork.class.getSimpleName();
-    private static Boolean mLoggingEnabled;
+    private static final String LIB_NAME = ZctNetwork.class.getSimpleName();
 
     /**
      * Singleton objects
      */
-    private static ZctNetwork sInstance = null;
-    private static Gson sGson;
+    private static Gson sGson = null;
+    private static Boolean sDebuggingEnabled;
 
     /**
      * Queue of network requests
      */
-    private Integer mRequestTimeout;
-    private String mRequestTag;
-    private RequestQueue mRequestQueue;
-    private ImageLoader mImageLoader;
-    private LruCache<String, Bitmap> mCache;
-    private ImageCache mImageLoaderCache;
-    private int mErrorImage;
-    private int mDefaultImage;
     private Context mContext;
+    private RequestQueue mRequestQueue;
+    private Integer mRequestTimeout;
+    private Integer mRequestMaxRetries;
+    private String mRequestTagHandle;
 
     private ZctNetwork(Builder builder) {
 
-        this.mErrorImage = builder.errorResource;
         this.mContext = builder.context;
-        this.mDefaultImage = builder.defaultResource;
-        this.mRequestTimeout = builder.requestTimeout;
-        this.mRequestTag = builder.requestTag;
-        this.mLoggingEnabled = builder.loggingEnabled;
+        this.mRequestTimeout = builder.requestTimeoutMs;
+        this.mRequestMaxRetries = builder.requestMaxRetries;
+        this.mRequestTagHandle = builder.requestTagHandle;
+        this.sDebuggingEnabled = builder.debuggingEnabled;
 
-        File cacheDir = new File(builder.context.getCacheDir(), builder.cacheDir);
-
+        File cacheDir = new File(mContext.getCacheDir(), LIB_NAME);
         HttpStack stack = new HurlStack();
         Network network = new BasicNetwork(stack);
 
         this.mRequestQueue = new RequestQueue(new DiskBasedCache(cacheDir, builder.cacheSize), network);
         this.mRequestQueue.start();
 
-        this.mCache = new LruCache<>(builder.maxImageCacheEntries);
-        this.mImageLoaderCache = new ImageCache() {
-            @Override
-            public Bitmap getBitmap(String url) {
-                return mCache.get(url);
-            }
-
-            @Override
-            public void putBitmap(String url, Bitmap bitmap) {
-                mCache.put(url, bitmap);
-            }
-        };
-        this.mImageLoader = new ImageLoader(mRequestQueue, mImageLoaderCache);
-        ZctNetwork.log(ZctNetwork.class.getSimpleName() + " object created");
-    }
-
-    /**
-     * Get singleton instance of ZctNetwork object.
-     *
-     * @return - Instance of ZctNetwork object.
-     */
-    protected static ZctNetwork getInstance() {
-        return sInstance;
+        ZctNetwork.log(LIB_NAME + " created\n" +
+                builder.toString());
     }
 
     /**
      * Log all network lib activities if it is enabled by user.
+     *
+     * @param msg - Log message.
      */
     protected static void log(String msg) {
-        if (ZctNetwork.mLoggingEnabled) {
-            Log.e(DEFAULT_TAG, msg);
+        if (ZctNetwork.sDebuggingEnabled) {
+            Log.e(LIB_NAME, msg);
         }
     }
 
     /**
-     * Default values for ZctNetwork object:
-     * timeout:             2500 ms
-     * dialog min time:     0 ms
-     * request tag:         "ZctNetwork"
-     * logging enabled:     false
+     * Obtain singleton GSON instance.
      *
-     * @param context - Associated context to this instance.
-     * @return - Instance of ZctNetwork object.
+     * @return GSON instance.
      */
-    public static ZctNetwork with(Context context) {
-        if (sInstance == null) {
-            synchronized (ZctNetwork.class) {
-                if (sInstance == null) {
-                    sInstance = new Builder(context).build();
-                }
-            }
-        }
-
-        return sInstance;
-    }
-
-    /**
-     * Obtain singleton GSON instance
-     *
-     * @return GSON instance
-     */
-    public static Gson getGsonInstance() {
+    public static Gson getGson() {
         if (sGson == null) {
-            sGson = new GsonBuilder().setPrettyPrinting().create();
+            sGson = new GsonBuilder().setPrettyPrinting().excludeFieldsWithoutExposeAnnotation().create();
         }
         return sGson;
     }
@@ -143,63 +88,31 @@ public class ZctNetwork {
      * Determine network traffic based on network type. It returns number of bytes transferred over
      * specific interface since last boot time.
      *
-     * @param statsType - Interested network interface
-     * @return - Number of bytes
+     * @param statsType - Interested network interface.
+     * @return - Number of read bytes.
      */
-    public Long getNetworkStats(NetworkStats statsType) {
+    public Long readNetworkStats(NetworkStats statsType) {
         Long byteCount = -1L;
         String WIFI_RX = "/sys/class/net/wlan0/statistics/rx_bytes";
         String WIFI_TX = "/sys/class/net/wlan0/statistics/tx_bytes";
         String MOBILE_RX = "/sys/class/net/rmnet0/statistics/rx_bytes";
         String MOBILE_TX = "/sys/class/net/rmnet0/statistics/tx_bytes";
-        String MOBILE_PPP0_RX = "/sys/class/net/ppp0/statistics/rx_bytes";
-        String MOBILE_PPP0_TX = "/sys/class/net/ppp0/statistics/tx_bytes";
 
         switch (statsType) {
             case WIFI_RX:
                 byteCount = readFileValue(WIFI_RX);
-
-                // If fail to obtain values try to read them from wlan0 interface
-                if (byteCount == 0) {
-                    byteCount = TrafficStats.getTotalRxBytes() - this.getNetworkStats(NetworkStats.MOBILE_RX);
-                }
                 break;
             case WIFI_TX:
                 byteCount = readFileValue(WIFI_TX);
-
-                // If fail to obtain values try to read them from wlan0 interface
-                if (byteCount == 0) {
-                    byteCount = TrafficStats.getTotalTxBytes() - this.getNetworkStats(NetworkStats.MOBILE_TX);
-                }
                 break;
             case MOBILE_RX:
-                byteCount = TrafficStats.getMobileRxBytes();
-
-                // If fail to obtain values try to read them from rmnet0 interface
-                if (byteCount == 0) {
-                    byteCount = readFileValue(MOBILE_RX);
-                }
-
-                // If fail to obtain values try to read them from ppp0 interface
-                if (byteCount == 0) {
-                    byteCount = readFileValue(MOBILE_PPP0_RX);
-                }
+                byteCount = readFileValue(MOBILE_RX);
                 break;
             case MOBILE_TX:
-                byteCount = TrafficStats.getMobileTxBytes();
-
-                // If fail to obtain values try to read them from rmnet0 interface
-                if (byteCount == 0) {
-                    byteCount = readFileValue(MOBILE_TX);
-                }
-
-                // If fail to obtain values try to read them from ppp0 interface
-                if (byteCount == 0) {
-                    byteCount = readFileValue(MOBILE_PPP0_TX);
-                }
+                byteCount = readFileValue(MOBILE_TX);
                 break;
         }
-        this.log("getNetworkStats: [TYPE : " + statsType + "] [BYTES COUNT: " + byteCount + "]");
+        this.log("readNetworkStats: [TYPE : " + statsType + "] [BYTES COUNT: " + byteCount + "]");
         return byteCount;
     }
 
@@ -227,15 +140,6 @@ public class ZctNetwork {
         return ret;
     }
 
-    public void loadNetworkImage(String url, NetworkImageView networkImageView) {
-        networkImageView.setImageUrl(url, mImageLoader);
-    }
-
-    public void loadImage(String url, ImageView imageView) {
-        mImageLoader.get(url, ImageLoader.getImageListener(imageView,
-                mDefaultImage, mErrorImage));
-    }
-
     /**
      * Add new request to request queue and start fetching from network.
      *
@@ -243,7 +147,7 @@ public class ZctNetwork {
      * @param <T> - Generic request object.
      * @throws IllegalStateException - Handle this exception if basic request queue is not initialized.
      */
-    public <T> void sendRequest(NetworkRequest<T> req) throws IllegalStateException {
+    public <T> void sendRequest(ZctRequest<T> req) throws IllegalStateException {
         if (req == null) {
             ZctNetwork.log("Received request is null");
             return;
@@ -254,15 +158,12 @@ public class ZctNetwork {
             throw new IllegalStateException("Object not initialized, please review your code.");
         }
 
+        req.setTag(mRequestTagHandle);
+
         req.setRetryPolicy(new DefaultRetryPolicy(mRequestTimeout,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                mRequestMaxRetries,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
-
-        ZctNetwork.log(req.toString());
-
-        req.setTag(mRequestTag);
         mRequestQueue.add(req);
-        ZctNetwork.log("Request added to queue");
     }
 
     /**
@@ -319,15 +220,14 @@ public class ZctNetwork {
             line = br.readLine();
             bytes = Long.parseLong(line);
         } catch (Exception e) {
-            e.printStackTrace();
+            ZctNetwork.log(e.toString());
             return 0L;
-
         } finally {
             if (br != null)
                 try {
                     br.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    ZctNetwork.log(e.toString());
                 }
         }
         return bytes;
@@ -343,7 +243,7 @@ public class ZctNetwork {
 
         private final String name;
 
-        private ErrorType(String s) {
+        ErrorType(String s) {
             name = s;
         }
 
@@ -364,7 +264,7 @@ public class ZctNetwork {
 
         private final String name;
 
-        private NetworkType(String s) {
+        NetworkType(String s) {
             name = s;
         }
 
@@ -385,7 +285,7 @@ public class ZctNetwork {
 
         private final String name;
 
-        private NetworkStats(String s) {
+        NetworkStats(String s) {
             name = s;
         }
 
@@ -399,27 +299,30 @@ public class ZctNetwork {
     }
 
     /**
-     * Fluent API for creating {@link ZctNetwork} instances.
+     * Fluent API for creating ZctNetwork instances.
+     * <p>
+     * Default values for ZctNetwork object:
+     * timeout:             2500 ms
+     * max retries:         1
+     * request tag handle:  "zctNetwork"
+     * logging enabled:     false
+     * cache size:          10Mb
      */
     public static class Builder {
         private static Boolean DEFAULT_LOGGING = false;
-        private static Integer DEFAULT_MAX_IMAGE_CACHE_SIZE = 30;
-        private static String DEFAULT_CACHE_DIR = "zctNetwork";
-        private static int DEFAULT_NETWORK_CACHE_SIZE = 10 * 1024 * 1024; // 10Mb
+        private static Integer DEFAULT_NETWORK_CACHE_SIZE = 10 * 1024 * 1024; // 10Mb
 
-        public String cacheDir = null;
-        public int cacheSize = 0;
         private Context context = null;
-        private String requestTag = null;
-        private Boolean loggingEnabled = null;
-        private Integer maxImageCacheEntries = null;
-        private Integer requestTimeout = null;
-        private int defaultResource = 0;
-        private int errorResource = 0;
-
+        private Integer requestTimeoutMs = null;
+        private Integer requestMaxRetries = null;
+        private String requestTagHandle = null;
+        private Boolean debuggingEnabled = null;
+        private Integer cacheSize = null;
 
         /**
          * Start building a new {@link ZctNetwork} instance.
+         *
+         * @param context - Associated context to this instance.
          */
         public Builder(Context context) {
             if (context == null) {
@@ -431,69 +334,43 @@ public class ZctNetwork {
         /**
          * Specify timeout time for network request. If not set, default volley network timeout time is set.
          *
-         * @param timeout - Network timeout time in milliseconds.
+         * @param timeoutMs - Network timeout time in milliseconds.
          * @return - Instance of Builder object.
          */
-        public Builder defaultTimeout(Integer timeout) {
-            this.requestTimeout = timeout;
+        public Builder requestTimeout(Integer timeoutMs) {
+            this.requestTimeoutMs = timeoutMs;
+            return this;
+        }
+
+        /**
+         * Change default retry policy number from 1 to maxRetries.
+         *
+         * @param maxRetries - The maximum number of retries.
+         * @return - Instance of Builder object.
+         */
+        public Builder reqeustMaxRetries(Integer maxRetries) {
+            this.requestMaxRetries = maxRetries;
             return this;
         }
 
         /**
          * Specify tag that is used by volley request.
          *
-         * @param tag - Tag used for post-management of request.
+         * @param tagHandle - Tag used for post-management of request.
          * @return - Instance of Builder object.
          */
-        public Builder defaultRequestTag(String tag) {
-            this.requestTag = tag;
+        public Builder requestTagHandle(String tagHandle) {
+            this.requestTagHandle = tagHandle;
             return this;
         }
 
         /**
-         * Toggle whether debug logging is enabled.
+         * Enable ZCT Network request traces. It will be visible under android logcat.
          *
-         * @param enabled - If enabled, network lib will trace it's activity to logcat.
          * @return - Instance of Builder object.
          */
-        public Builder defaultLoggingEnabled(Boolean enabled) {
-            this.loggingEnabled = enabled;
-            return this;
-        }
-
-        /**
-         * Configure default max image cache size value.
-         *
-         * @param maxEntries - Maximum number of entries in the cache. For all other caches,
-         *                   this is the maximum sum of the sizes of the entries in this cache.
-         * @return - Instance of Builder object.
-         */
-        public Builder defaultImageCacheEntries(Integer maxEntries) {
-            this.maxImageCacheEntries = maxEntries;
-            return this;
-        }
-
-        /**
-         * Configure default image loader resources.
-         *
-         * @param defaultResource - Loading image is shown while image is loading.
-         * @param errorResource   - Error image is shown if error occurs while loading image.
-         * @return - Instance of Builder object.
-         */
-        public Builder defaultImageLoaderResources(int defaultResource, int errorResource) {
-            this.defaultResource = defaultResource;
-            this.errorResource = errorResource;
-            return this;
-        }
-
-        /**
-         * Configure default cache dir name.
-         *
-         * @param cacheDir - Cache dir name.
-         * @return - Instance of Builder object.
-         */
-        public Builder defaultCacheDir(String cacheDir) {
-            this.cacheDir = cacheDir;
+        public Builder enableConsoleDebugging() {
+            this.debuggingEnabled = true;
             return this;
         }
 
@@ -502,48 +379,47 @@ public class ZctNetwork {
          *
          * @param cacheSize - The maximum size of the cache in bytes.
          */
-        public Builder defaultCacheSize(int cacheSize) {
+        public Builder cacheSize(Integer cacheSize) {
             this.cacheSize = cacheSize;
             return this;
         }
-
 
         /**
          * Create the {@link ZctNetwork} instance.
          */
         public ZctNetwork build() {
 
-            if (requestTimeout == null) {
-                requestTimeout = DefaultRetryPolicy.DEFAULT_TIMEOUT_MS;
+            if (requestTimeoutMs == null) {
+                requestTimeoutMs = DefaultRetryPolicy.DEFAULT_TIMEOUT_MS;
             }
 
-            if (requestTag == null) {
-                requestTag = DEFAULT_TAG;
+            if (requestMaxRetries == null) {
+                requestMaxRetries = DefaultRetryPolicy.DEFAULT_MAX_RETRIES;
             }
 
-            if (loggingEnabled == null) {
-                loggingEnabled = DEFAULT_LOGGING;
-            }
-            if (maxImageCacheEntries == null) {
-                maxImageCacheEntries = DEFAULT_MAX_IMAGE_CACHE_SIZE;
-            }
-            if (errorResource == 0) {
-                errorResource = android.R.drawable.ic_dialog_alert;
+            if (requestTagHandle == null) {
+                requestTagHandle = LIB_NAME;
             }
 
-            if (defaultResource == 0) {
-                defaultResource = R.drawable.ic_default;
-            }
-            if (cacheDir == null) {
-                cacheDir = DEFAULT_CACHE_DIR;
+            if (debuggingEnabled == null) {
+                debuggingEnabled = DEFAULT_LOGGING;
             }
 
-            if (cacheSize == 0) {
+            if (cacheSize == null) {
                 cacheSize = DEFAULT_NETWORK_CACHE_SIZE;
             }
 
-            sInstance = new ZctNetwork(this);
-            return sInstance;
+            return new ZctNetwork(this);
+        }
+
+        @Override
+        public String toString() {
+            return "context=" + context +
+                    ",\nrequestTimeoutMs=" + requestTimeoutMs +
+                    ",\nrequestMaxRetries=" + requestMaxRetries +
+                    ",\nrequestTagHandle='" + requestTagHandle + '\'' +
+                    ",\ndebuggingEnabled=" + debuggingEnabled +
+                    ",\ncacheSize=" + cacheSize + " b";
         }
     }
 }

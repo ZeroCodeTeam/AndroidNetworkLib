@@ -13,18 +13,6 @@
     tools:context="com.zerocodeteam.networktestapp.MainActivity"
     tools:showIn="@layout/activity_main">
 
-    <com.android.volley.toolbox.NetworkImageView
-        android:id="@+id/networkImage"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="center" />
-
-    <ImageView
-        android:id="@+id/networkImageWithLoading"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="center" />
-
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
